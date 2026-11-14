@@ -68,10 +68,14 @@ gcloud billing projects describe "$PROJECT_ID"
 gcloud config set project "$PROJECT_ID"
 ```
 
-### 6. Authenticate Terraform (Application Default Credentials)
-If running on your local machine (not needed if using Cloud Shell):
+### 6. Authenticate Terraform & Sync Quota Project
+If running locally on your laptop (not needed if using Cloud Shell):
 ```bash
+# Authenticate Application Default Credentials
 gcloud auth application-default login
+
+# Sync the ADC quota project to avoid quota/billing mismatch warnings
+gcloud auth application-default set-quota-project "$PROJECT_ID"
 ```
 
 ---
