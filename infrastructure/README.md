@@ -40,7 +40,7 @@ However, like many real-world services rushed to staging or production, it conta
 ### Step 1: Set Your Environment Variables
 
 ```bash
-export PROJECT_ID="your-google-cloud-project-id"
+export PROJECT_ID="devfest-cloud-sby-2026-container-security-on-cloud-run"
 export REGION="us-central1" # Cheapest tier (Tier 1) with full GCP Free Tier coverage
 ```
 
@@ -69,9 +69,9 @@ Copy the example variables file:
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-Update `terraform.tfvars`:
+The default values in `terraform.tfvars`:
 ```hcl
-project_id = "your-google-cloud-project-id"
+project_id = "devfest-cloud-sby-2026-container-security-on-cloud-run"
 region     = "us-central1"
 ```
 
