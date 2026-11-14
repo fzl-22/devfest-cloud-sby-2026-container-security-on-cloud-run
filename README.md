@@ -93,22 +93,26 @@ This script:
 
 ### Option B: Manual Step-by-Step Deploy
 
-#### 1. Initialize Terraform & Create Registry
+#### 1. Provision the Infrastructure via Terraform
+Navigate to `infrastructure/` and run `terraform apply`:
 ```bash
 cd infrastructure
 terraform init
-terraform apply -target=google_project_service.artifactregistry -target=google_artifact_registry_repository.todo_repo -var="project_id=$PROJECT_ID"
+terraform apply -var="project_id=$PROJECT_ID"
 cd ..
 ```
+*Note: This creates the APIs, Service Account, Secret Manager, Artifact Registry (`todo-repo`), and initial Cloud Run service in one shot.*
 
-#### 2. Build & Push Image via Cloud Build
+#### 2. Build & Push the Todo Container Image
+Build the container image directly in your project using Cloud Build:
 ```bash
 gcloud builds submit ./application \
   --project="$PROJECT_ID" \
   --tag="${REGION}-docker.pkg.dev/${PROJECT_ID}/todo-repo/todo-service:v1"
 ```
 
-#### 3. Deploy Cloud Run Service via Terraform
+#### 3. Update Cloud Run with the Todo Image
+Update the running Cloud Run service to use your new container:
 ```bash
 cd infrastructure
 terraform apply \
