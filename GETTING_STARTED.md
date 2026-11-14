@@ -17,8 +17,9 @@ Estimated setup time: **15–20 minutes**.
 | [Docker](#2-docker) | Build and run container images locally | 24+ |
 | [Terraform](#3-terraform) | Provision GCP infrastructure as code | 1.9+ |
 | [Trivy](#4-trivy) | Scan container images for CVEs | 0.55+ |
-| [curl](#5-curl) | Make HTTP requests to the live service | any |
-| [jq](#6-jq) | Parse and extract JSON output in the terminal | 1.6+ |
+| [Go & govulncheck](#5-go--govulncheck) | Run deterministic Go code vulnerability analysis | 1.22+ |
+| [curl](#6-curl) | Make HTTP requests to the live service | any |
+| [jq](#7-jq) | Parse and extract JSON output in the terminal | 1.6+ |
 
 ---
 
@@ -153,7 +154,29 @@ trivy image us-central1-docker.pkg.dev/devfest-cloud-sby-2026-csec-run/todo-repo
 
 ---
 
-## 5. curl
+## 5. Go & govulncheck
+
+Official guide: [go.dev/doc/install](https://go.dev/doc/install) and [pkg.go.dev/golang.org/x/vuln/cmd/govulncheck](https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck)
+
+Used to deterministically audit application Go source code for called vulnerable functions.
+
+### Installation
+- **macOS:** `brew install go`
+- **Arch Linux:** `sudo pacman -S go`
+- **Fedora:** `sudo dnf install -y golang`
+- **Ubuntu / Debian:** `sudo apt-get install -y golang` or follow [official Go tarball install](https://go.dev/doc/install)
+
+### Install govulncheck
+```bash
+go install golang.org/x/vuln/cmd/govulncheck@latest
+
+# Verify (ensure ~/go/bin is in your PATH)
+govulncheck -version
+```
+
+---
+
+## 6. curl
 
 Pre-installed on macOS, WSL 2, and most Linux distributions.
 
@@ -171,7 +194,7 @@ sudo pacman -S curl
 
 ---
 
-## 6. jq
+## 7. jq
 
 Official site: [jqlang.github.io/jq](https://jqlang.github.io/jq/download/)
 
@@ -208,6 +231,8 @@ gcloud version
 docker version
 terraform version
 trivy version
+go version
+govulncheck -version
 curl --version
 jq --version
 ```
