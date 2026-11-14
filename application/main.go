@@ -112,7 +112,7 @@ func NewTodoStore(cfg *AppConfig) *TodoStore {
 	store.todos[2] = Todo{
 		ID:          2,
 		Title:       "Migrate runtime container to Distroless",
-		Description: "Reduce attack surface by switching from golang:1.24 to distroless/static-debian12",
+		Description: "Reduce attack surface by switching from golang:1.26 to distroless/static-debian12",
 		Completed:   false,
 		CreatedAt:   time.Now().Add(-12 * time.Hour),
 		UpdatedAt:   time.Now().Add(-12 * time.Hour),
