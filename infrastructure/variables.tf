@@ -1,7 +1,7 @@
 variable "project_id" {
   type        = string
-  description = "The GCP project ID where resources will be deployed"
-  default     = "devfest-cloud-sby-2026-container-security-on-cloud-run"
+  description = "The GCP project ID where resources will be deployed (max 30 chars)"
+  default     = "devfest-sby-2026-csec-run"
 }
 
 variable "region" {

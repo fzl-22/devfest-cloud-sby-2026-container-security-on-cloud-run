@@ -33,17 +33,17 @@ gcloud auth login
 ```
 
 ### 2. Set Your Project ID Variable
-> **Note:** A Google Cloud Project ID must be globally unique, 6–30 characters long, and can contain lowercase letters, digits, and hyphens.
+> **Important:** Google Cloud Project IDs must be **between 6 and 30 characters**, start with a lowercase letter, and contain only lowercase letters, digits, or hyphens.
 
 ```bash
-export PROJECT_ID="devfest-cloud-sby-2026-container-security-on-cloud-run"
+export PROJECT_ID="devfest-sby-2026-csec-run"
 export REGION="us-central1"
 ```
-*(If this project ID is already taken, append your initials or a random number, e.g., `devfest-cloud-sby-2026-sec-yourname`)*
+*(If this project ID is already taken, append your initials, e.g., `devfest-sby26-csec-af`)*
 
 ### 3. Create the Project via CLI
 ```bash
-gcloud projects create "$PROJECT_ID" --name="DevFest Cloud 2026: Container Security on Cloud Run"
+gcloud projects create "$PROJECT_ID" --name="DevFest Cloud 2026"
 ```
 
 ### 4. Link a Billing Account (Required for Cloud Run)
@@ -98,7 +98,7 @@ cp terraform.tfvars.example terraform.tfvars
 
 Ensure `terraform.tfvars` matches your project:
 ```hcl
-project_id = "devfest-cloud-sby-2026-container-security-on-cloud-run"
+project_id = "devfest-sby-2026-csec-run"
 region     = "us-central1"
 ```
 
