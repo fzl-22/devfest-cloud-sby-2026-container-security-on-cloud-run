@@ -15,9 +15,10 @@
 # ==============================================================================
 
 resource "google_cloud_run_v2_service" "todo_service" {
-  name     = var.service_name
-  location = var.region
-  ingress  = "INGRESS_TRAFFIC_ALL"
+  name                = var.service_name
+  location            = var.region
+  ingress             = "INGRESS_TRAFFIC_ALL"
+  deletion_protection = false
 
   template {
     # 1. Custom Service Account is used (looks good!)
@@ -80,7 +81,8 @@ resource "google_cloud_run_v2_service" "todo_service" {
 
   depends_on = [
     google_project_service.run,
-    google_secret_manager_secret_version.todo_secrets_v1
+    google_secret_manager_secret_version.todo_secrets_v1,
+    google_project_iam_member.secret_broad
   ]
 }
 
