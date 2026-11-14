@@ -43,7 +43,6 @@ resource "google_cloud_run_v2_service" "todo_service" {
         }
       }
 
-      # Realistic flaw 1: Debug flags left enabled in staging/prod config
       env {
         name  = "DEBUG"
         value = "true"
@@ -54,8 +53,6 @@ resource "google_cloud_run_v2_service" "todo_service" {
         value = "staging"
       }
 
-      # Realistic flaw 2: Mounting a whole JSON blob from Secret Manager into an env var
-      # (Any memory dump or /proc/1/environ exposes every secret in the blob)
       env {
         name = "APP_CONFIG_SECRETS"
         value_source {

@@ -8,6 +8,12 @@
 
 ---
 
+> [!CAUTION]
+> This repository is **intentionally insecure** for workshop purposes.
+> Every flaw is documented in [VULNERABILITIES.md](./VULNERABILITIES.md).
+
+---
+
 ## Repository Layout
 
 ```text
@@ -30,9 +36,11 @@
 │   ├── deploy_todo.sh       # Automated build & deploy script
 │   ├── attack.sh            # Exploit and test script
 │   └── cleanup.sh           # Resource teardown script
+├── VULNERABILITIES.md       # Intentional flaws reference (workshop guide)
 └── README.md                # This file (End-to-End Workshop Guide)
 ```
 
+---
 ---
 
 ## Step 0: GCP Project Preparation
@@ -70,6 +78,7 @@ gcloud auth application-default set-quota-project "$PROJECT_ID"
 ```
 
 ---
+---
 
 ## Step 1: Deploy to Cloud Run
 
@@ -89,6 +98,7 @@ This script:
 3. Provisions the infrastructure with Terraform and deploys the container to Cloud Run.
 4. Outputs the live service URL.
 
+---
 ---
 
 ### Option B: Manual Step-by-Step Deploy
@@ -128,6 +138,7 @@ cd ..
 *Note: In Git, `infrastructure/variables.tf` already points to `todo-service:stable` by default. If you ever need to apply Terraform on a fresh project before the image exists, you can temporarily uncomment the `hello` placeholder in `variables.tf`.*
 
 ---
+---
 
 ## Step 2: Test the Live Service
 
@@ -163,6 +174,7 @@ curl -i -X DELETE "$SERVICE_URL/api/v1/todos/1" \
 ```
 
 ---
+---
 
 ## Step 3: Review with Gemini (AI Studio)
 
@@ -181,6 +193,7 @@ the exact file and line it comes from, and one concrete fix.
 Only report findings you can support from the provided files.
 ```
 
+---
 ---
 
 ## Step 4: Cleanup
