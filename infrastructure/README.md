@@ -23,35 +23,62 @@ However, like many real-world services rushed to staging or production, it conta
 
 ---
 
-## Prerequisites
+## Step 0: Create and Prepare Your GCP Project
 
-1. **Google Cloud SDK (`gcloud`)** installed and authenticated:
-   ```bash
-   gcloud auth login
-   gcloud auth application-default login
-   ```
-2. **Terraform** (`>= 1.5.0`) installed.
-3. An active GCP project with **billing enabled**.
+Before running Terraform, you need an active Google Cloud project with billing linked.
+
+### 1. Check your Google Account Login
+```bash
+gcloud auth login
+```
+
+### 2. Set Your Project ID Variable
+> **Note:** A Google Cloud Project ID must be globally unique, 6–30 characters long, and can contain lowercase letters, digits, and hyphens.
+
+```bash
+export PROJECT_ID="devfest-cloud-sby-2026-container-security-on-cloud-run"
+export REGION="us-central1"
+```
+*(If this project ID is already taken, append your initials or a random number, e.g., `devfest-cloud-sby-2026-sec-yourname`)*
+
+### 3. Create the Project via CLI
+```bash
+gcloud projects create "$PROJECT_ID" --name="DevFest Cloud 2026: Container Security on Cloud Run"
+```
+
+### 4. Link a Billing Account (Required for Cloud Run)
+Cloud Run requires an active billing account. List your available billing accounts:
+```bash
+gcloud billing accounts list
+```
+Copy your `ACCOUNT_ID` (format: `012345-6789AB-CDEF01`) and link it:
+```bash
+export BILLING_ACCOUNT_ID="YOUR_BILLING_ACCOUNT_ID"
+
+gcloud billing projects link "$PROJECT_ID" --billing-account="$BILLING_ACCOUNT_ID"
+```
+
+Verify billing is active:
+```bash
+gcloud billing projects describe "$PROJECT_ID"
+```
+
+### 5. Set as Active Project
+```bash
+gcloud config set project "$PROJECT_ID"
+```
+
+### 6. Authenticate Terraform (Application Default Credentials)
+If running on your local machine (not needed if using Cloud Shell):
+```bash
+gcloud auth application-default login
+```
 
 ---
 
 ## Step-by-Step Deployment Guide
 
-### Step 1: Set Your Environment Variables
-
-```bash
-export PROJECT_ID="devfest-cloud-sby-2026-container-security-on-cloud-run"
-export REGION="us-central1" # Cheapest tier (Tier 1) with full GCP Free Tier coverage
-```
-
-Ensure your `gcloud` CLI is pointing to the project:
-```bash
-gcloud config set project "$PROJECT_ID"
-```
-
----
-
-### Step 2: Initialize Terraform
+### Step 1: Navigate and Initialize Terraform
 
 Navigate to the `infrastructure` directory and initialize provider plugins:
 
@@ -62,14 +89,14 @@ terraform init
 
 ---
 
-### Step 3: Configure Project Variables
+### Step 2: Configure Project Variables
 
 Copy the example variables file:
 ```bash
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-The default values in `terraform.tfvars`:
+Ensure `terraform.tfvars` matches your project:
 ```hcl
 project_id = "devfest-cloud-sby-2026-container-security-on-cloud-run"
 region     = "us-central1"
@@ -77,7 +104,7 @@ region     = "us-central1"
 
 ---
 
-### Step 4: Plan the Deployment
+### Step 3: Plan the Deployment
 
 Run Terraform plan to inspect the resources:
 
@@ -94,7 +121,7 @@ Resources to be created:
 
 ---
 
-### Step 5: Provision the Infrastructure
+### Step 4: Provision the Infrastructure
 
 Apply the configuration and confirm when prompted with `yes`:
 
@@ -106,7 +133,7 @@ Provisioning takes approximately 1 to 2 minutes.
 
 ---
 
-### Step 6: Inspect the Deployment
+### Step 5: Inspect the Deployment
 
 View the outputs:
 
@@ -144,4 +171,9 @@ To delete all provisioned resources:
 
 ```bash
 terraform destroy -var="project_id=$PROJECT_ID"
+```
+
+To delete the entire project and guarantee zero further billing:
+```bash
+gcloud projects delete "$PROJECT_ID"
 ```
