@@ -40,6 +40,8 @@
 │   ├── deploy_todo.sh       # Automated build & deploy script
 │   ├── attack.sh            # Exploit and test script
 │   └── cleanup.sh           # Resource teardown script
+├── reports/
+│   └── SECURITY_REPORT.md   # Generated 3-layer security audit report
 ├── GETTING_STARTED.md       # Prerequisite tools installation guide
 ├── VULNERABILITIES.md       # Intentional flaws reference (workshop guide)
 └── README.md                # This file (End-to-End Workshop Guide)
@@ -178,26 +180,34 @@ curl -i -X DELETE "$SERVICE_URL/api/v1/todos/1" \
 ```
 
 ---
----
 
-## Step 3: Review with Gemini (AI Studio)
+## Step 3: Security Review with Antigravity Agent
 
-Open [Google AI Studio](https://aistudio.google.com). Paste `application/main.go`, `application/Dockerfile`, and the `.tf` files from `infrastructure/` with the following prompt:
+Instead of manually reviewing code and configurations, leverage the custom workspace skill **`container-security-review`** included in this repository.
+
+The skill is defined in [`.agents/skills/container-security-review/`](./.agents/skills/container-security-review/SKILL.md) and instructs the Antigravity agent to evaluate the project across three operational layers (**Platform**, **Container / Runtime**, **Application**) mapped against **OWASP Top 10:2025**.
+
+### 1. Trigger the Skill & Generate the Report
+In your Antigravity conversation or CLI prompt, ask the agent to run the review and output a structured report to a file:
 
 ```text
-You are a security reviewer for a service deployed on Google Cloud Run.
-Review the provided files and report findings organized into three layers:
-
-- Infrastructure: IAM, service account permissions, who can invoke the service
-- Container: base image, running user, image contents, CVEs — for CVE counts, recommend running Trivy, do not guess
-- Application: code and configuration — secrets, error handling, timeouts, dependencies
-
-For each finding include: severity (high/medium/low), the relevant OWASP Top 10 (2021) category, 
-the exact file and line it comes from, and one concrete fix. 
-Only report findings you can support from the provided files.
+Perform a full security review of the application, container, and infrastructure using the container-security-review skill, and generate a comprehensive security report saved to reports/SECURITY_REPORT.md.
 ```
 
----
+### 2. What the Agent Inspects
+
+The agent autonomously walks through the 3-layer audit checklist:
+- **Layer 3 — Platform:** Cloud Run ingress, unauthenticated invoker permissions (`allUsers`), IAM service account blast radius, and Secret Manager exposure.
+- **Layer 2 — Container:** Base image bloat (`golang:1.26` vs. distroless/alpine), lack of `USER` directive (running as root), baked secrets in `ENV` image layers, and PID 1 signal handling.
+- **Layer 1 — Application:** Fallback secrets in code, debug diagnostic endpoints dumping environment variables, error handling reflection leaks, and dependency integrity.
+
+### 3. Apply the Hardened Fixes
+Once the agent provides findings with file links and severity mappings, you can prompt it to automatically harden your codebase:
+
+```text
+Apply the recommended container fixes to application/Dockerfile and harden cloud_run.tf.
+```
+
 ---
 
 ## Step 4: Cleanup
