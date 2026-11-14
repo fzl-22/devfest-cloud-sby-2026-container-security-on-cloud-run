@@ -12,6 +12,10 @@
 > This repository is **intentionally insecure** for workshop purposes.
 > Every flaw is documented in [VULNERABILITIES.md](./VULNERABILITIES.md).
 
+> [!TIP]
+> Need to install prerequisites (`gcloud`, Docker, Terraform, Trivy, etc.)?
+> Check out the [GETTING_STARTED.md](./GETTING_STARTED.md) guide before beginning.
+
 ---
 
 ## Repository Layout
@@ -36,11 +40,11 @@
 │   ├── deploy_todo.sh       # Automated build & deploy script
 │   ├── attack.sh            # Exploit and test script
 │   └── cleanup.sh           # Resource teardown script
+├── GETTING_STARTED.md       # Prerequisite tools installation guide
 ├── VULNERABILITIES.md       # Intentional flaws reference (workshop guide)
 └── README.md                # This file (End-to-End Workshop Guide)
 ```
 
----
 ---
 
 ## Step 0: GCP Project Preparation
@@ -49,7 +53,7 @@ Before deploying, ensure you have an active Google Cloud project with billing en
 
 ### 1. Set Environment Variables
 ```bash
-export PROJECT_ID="devfest-sby-2026-csec-run"
+export PROJECT_ID="devfest-cloud-sby-2026-csec-run"
 export REGION="us-central1"
 ```
 
@@ -161,13 +165,13 @@ curl -i "$SERVICE_URL/api/v1/todos"
 ### 3. Inspect Leaked Diagnostics (The Flaw)
 Because `DEBUG=true` is enabled in the staging deployment, the internal diagnostic endpoint dumps all environment variables, including `APP_CONFIG_SECRETS`:
 ```bash
-curl -s "$SERVICE_URL/api/v1/system/diagnostics" | python3 -m json.tool
+curl -s "$SERVICE_URL/api/v1/system/diagnostics" | jq .
 ```
 
 ### 4. Delete an Item with the Leaked Admin Key
 Extract the key from the diagnostics endpoint and issue an administrative delete:
 ```bash
-KEY=$(curl -s "$SERVICE_URL/api/v1/system/diagnostics" | python3 -c 'import sys,json;print(json.load(sys.stdin)["environment_variables"]["TODO_ADMIN_KEY"])')
+KEY=$(curl -s "$SERVICE_URL/api/v1/system/diagnostics" | jq -r '.environment_variables.TODO_ADMIN_KEY')
 
 curl -i -X DELETE "$SERVICE_URL/api/v1/todos/1" \
   -H "X-Admin-Key: $KEY"
