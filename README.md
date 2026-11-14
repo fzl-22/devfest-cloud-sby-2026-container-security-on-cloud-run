@@ -85,7 +85,7 @@ From the repository root:
 
 This script:
 1. Ensures the `todo-repo` Artifact Registry repository exists in `$REGION`.
-2. Packages and builds `application/` via **Google Cloud Build** (`us-central1-docker.pkg.dev/$PROJECT_ID/todo-repo/todo-service:v1`).
+2. Packages and builds `application/` via **Google Cloud Build** (`us-central1-docker.pkg.dev/$PROJECT_ID/todo-repo/todo-service:stable`).
 3. Provisions the infrastructure with Terraform and deploys the container to Cloud Run.
 4. Outputs the live service URL.
 
@@ -100,7 +100,7 @@ Build the custom container image and push it to Artifact Registry:
   ```bash
   gcloud builds submit ./application \
     --project="$PROJECT_ID" \
-    --tag="${REGION}-docker.pkg.dev/${PROJECT_ID}/todo-repo/todo-service:v1"
+    --tag="${REGION}-docker.pkg.dev/${PROJECT_ID}/todo-repo/todo-service:stable"
   ```
 
 * **Choice 2: Using Local Docker (`docker build` & `docker push`):**
@@ -110,11 +110,11 @@ Build the custom container image and push it to Artifact Registry:
 
   # Build targeting linux/amd64 (critical for Apple Silicon/M-series Mac users)
   docker build --platform linux/amd64 \
-    -t "${REGION}-docker.pkg.dev/${PROJECT_ID}/todo-repo/todo-service:v1" \
+    -t "${REGION}-docker.pkg.dev/${PROJECT_ID}/todo-repo/todo-service:stable" \
     ./application
 
   # Push to your GCP Artifact Registry
-  docker push "${REGION}-docker.pkg.dev/${PROJECT_ID}/todo-repo/todo-service:v1"
+  docker push "${REGION}-docker.pkg.dev/${PROJECT_ID}/todo-repo/todo-service:stable"
   ```
 
 #### 2. Provision the Infrastructure via Terraform
@@ -125,7 +125,7 @@ terraform init
 terraform apply -var="project_id=$PROJECT_ID"
 cd ..
 ```
-*Note: In Git, `infrastructure/variables.tf` already points to `todo-service:v1` by default. If you ever need to apply Terraform on a fresh project before the image exists, you can temporarily uncomment the `hello` placeholder in `variables.tf`.*
+*Note: In Git, `infrastructure/variables.tf` already points to `todo-service:stable` by default. If you ever need to apply Terraform on a fresh project before the image exists, you can temporarily uncomment the `hello` placeholder in `variables.tf`.*
 
 ---
 

@@ -31,7 +31,7 @@ variable "image" {
   description = "Container image URI for the Todo application"
 
   # Production target: The real Todo microservice container image
-  default = "us-central1-docker.pkg.dev/devfest-sby-2026-csec-run/todo-repo/todo-service:v1"
+  default = "us-central1-docker.pkg.dev/devfest-sby-2026-csec-run/todo-repo/todo-service:stable"
 
   # Bootstrap placeholder: (Uncomment only if doing initial apply before image exists)
   # default = "us-docker.pkg.dev/cloudrun/container/hello"

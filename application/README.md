@@ -53,11 +53,11 @@ curl http://localhost:8080/api/v1/system/diagnostics
 
 ### 2. Build Container Image Locally
 ```bash
-docker build -t todo-service:v1 .
-docker run -p 8080:8080 -e DEBUG=true todo-service:v1
+docker build -t todo-service:stable .
+docker run -p 8080:8080 -e DEBUG=true todo-service:stable
 ```
 
 ### 3. Scan Image Locally
 ```bash
-trivy image todo-service:v1
+trivy image todo-service:stable
 ```
