@@ -41,7 +41,8 @@
 │   ├── attack.sh            # Exploit and test script
 │   └── cleanup.sh           # Resource teardown script
 ├── reports/
-│   └── SECURITY_REPORT.md   # Generated 3-layer security audit report
+│   ├── SECURITY_ASSESSMENT_REPORT.md   # Generated 3-layer security audit report
+│   └── CONTAINER_SCAN_REPORT.md        # Deterministic Trivy container vulnerability report
 ├── GETTING_STARTED.md       # Prerequisite tools installation guide
 ├── VULNERABILITIES.md       # Intentional flaws reference (workshop guide)
 └── README.md                # This file (End-to-End Workshop Guide)
@@ -188,10 +189,10 @@ Instead of manually reviewing code and configurations, leverage the custom works
 The skill is defined in [`.agents/skills/container-security-review/`](./.agents/skills/container-security-review/SKILL.md) and instructs the Antigravity agent to evaluate the project across three operational layers (**Platform**, **Container / Runtime**, **Application**) mapped against **OWASP Top 10:2025**.
 
 ### 1. Trigger the Skill & Generate the Report
-In your Antigravity conversation or CLI prompt, ask the agent to run the review and output a structured report to a file:
+In your Antigravity conversation or CLI prompt, trigger the review (the skill automatically saves the complete audit to `reports/SECURITY_ASSESSMENT_REPORT.md`):
 
 ```text
-Perform a full security review of the application, container, and infrastructure using the container-security-review skill, and generate a comprehensive security report saved to reports/SECURITY_REPORT.md.
+Perform a full security review of the application, container, and infrastructure using the container-security-review skill.
 ```
 
 ### 2. What the Agent Inspects
@@ -235,9 +236,20 @@ cd ..
 Scan the active production/staging container image for OS-level and library vulnerabilities:
 
 ```bash
-# Scan the current staging container
-trivy image us-central1-docker.pkg.dev/$PROJECT_ID/todo-repo/todo-service:stable
+# Output scan results directly to reports/CONTAINER_SCAN_REPORT.md
+trivy image \
+  --skip-version-check \
+  --output reports/CONTAINER_SCAN_REPORT.md \
+  us-central1-docker.pkg.dev/$PROJECT_ID/todo-repo/todo-service:stable
+
+# Or export structured JSON for automated tooling
+trivy image \
+  --skip-version-check \
+  --format json \
+  --output reports/CONTAINER_SCAN_REPORT.json \
+  us-central1-docker.pkg.dev/$PROJECT_ID/todo-repo/todo-service:stable
 ```
+*A detailed analysis of this scan is documented in [`reports/CONTAINER_SCAN_REPORT.md`](./reports/CONTAINER_SCAN_REPORT.md).*
 
 Compare against the hardened distroless image after applying fixes:
 ```bash
