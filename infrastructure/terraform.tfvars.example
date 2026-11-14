@@ -1,2 +1,6 @@
 project_id = "devfest-sby-2026-csec-run"
 region     = "us-central1"
+image      = "us-central1-docker.pkg.dev/devfest-sby-2026-csec-run/todo-repo/todo-service:v1"
+
+# Bootstrap placeholder (uncomment only if testing apply before building image):
+# image = "us-docker.pkg.dev/cloudrun/container/hello"

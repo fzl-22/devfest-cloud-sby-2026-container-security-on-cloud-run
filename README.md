@@ -23,7 +23,7 @@
 │   ├── service_account.tf   # Custom service account & IAM bindings
 │   ├── secrets.tf           # Secret Manager configuration
 │   ├── cloud_run.tf         # Cloud Run service definition
-│   ├── variables.tf         # Input variables (project_id, region)
+│   ├── variables.tf         # Input variables (project_id, region, image)
 │   ├── outputs.tf           # Endpoints and IDs
 │   └── README.md            # Infrastructure setup & variables guide
 ├── scripts/
@@ -93,33 +93,39 @@ This script:
 
 ### Option B: Manual Step-by-Step Deploy
 
-#### 1. Provision the Infrastructure via Terraform
-Navigate to `infrastructure/` and run `terraform apply`:
+#### 1. Build & Push the Todo Container Image First
+Build the custom container image and push it to Artifact Registry:
+
+* **Choice 1: Using Cloud Build (Fastest, no local Docker needed):**
+  ```bash
+  gcloud builds submit ./application \
+    --project="$PROJECT_ID" \
+    --tag="${REGION}-docker.pkg.dev/${PROJECT_ID}/todo-repo/todo-service:v1"
+  ```
+
+* **Choice 2: Using Local Docker (`docker build` & `docker push`):**
+  ```bash
+  # Authenticate Docker CLI to Artifact Registry
+  gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+
+  # Build targeting linux/amd64 (critical for Apple Silicon/M-series Mac users)
+  docker build --platform linux/amd64 \
+    -t "${REGION}-docker.pkg.dev/${PROJECT_ID}/todo-repo/todo-service:v1" \
+    ./application
+
+  # Push to your GCP Artifact Registry
+  docker push "${REGION}-docker.pkg.dev/${PROJECT_ID}/todo-repo/todo-service:v1"
+  ```
+
+#### 2. Provision the Infrastructure via Terraform
+Now navigate to `infrastructure/` and run `terraform apply`:
 ```bash
 cd infrastructure
 terraform init
 terraform apply -var="project_id=$PROJECT_ID"
 cd ..
 ```
-*Note: This creates the APIs, Service Account, Secret Manager, Artifact Registry (`todo-repo`), and initial Cloud Run service in one shot.*
-
-#### 2. Build & Push the Todo Container Image
-Build the container image directly in your project using Cloud Build:
-```bash
-gcloud builds submit ./application \
-  --project="$PROJECT_ID" \
-  --tag="${REGION}-docker.pkg.dev/${PROJECT_ID}/todo-repo/todo-service:v1"
-```
-
-#### 3. Update Cloud Run with the Todo Image
-Update the running Cloud Run service to use your new container:
-```bash
-cd infrastructure
-terraform apply \
-  -var="project_id=$PROJECT_ID" \
-  -var="image=${REGION}-docker.pkg.dev/${PROJECT_ID}/todo-repo/todo-service:v1"
-cd ..
-```
+*Note: In Git, `infrastructure/variables.tf` already points to `todo-service:v1` by default. If you ever need to apply Terraform on a fresh project before the image exists, you can temporarily uncomment the `hello` placeholder in `variables.tf`.*
 
 ---
 

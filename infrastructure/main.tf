@@ -29,6 +29,11 @@ resource "google_project_service" "secretmanager" {
   disable_on_destroy = false
 }
 
+resource "google_project_service" "cloudbuild" {
+  service            = "cloudbuild.googleapis.com"
+  disable_on_destroy = false
+}
+
 # Artifact Registry for Todo container images
 resource "google_artifact_registry_repository" "todo_repo" {
   location      = var.region

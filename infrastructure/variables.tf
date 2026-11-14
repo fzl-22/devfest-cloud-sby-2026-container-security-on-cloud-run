@@ -16,8 +16,23 @@ variable "service_name" {
   default     = "todo-app-default"
 }
 
+# ==============================================================================
+# Container Image Configuration
+# ==============================================================================
+# The default in Git points directly to the real application image.
+#
+# NOTE FOR FRESH PROJECT BOOTSTRAP:
+# If you are deploying to a brand-new GCP project before building the image,
+# temporarily uncomment the 'hello' placeholder below for your first apply,
+# OR build and push the container first with `gcloud builds submit`.
+# ==============================================================================
 variable "image" {
   type        = string
   description = "Container image URI for the Todo application"
-  default     = "us-docker.pkg.dev/cloudrun/container/hello" # Placeholder sample container until custom todo image is built
+
+  # Production target: The real Todo microservice container image
+  default = "us-central1-docker.pkg.dev/devfest-sby-2026-csec-run/todo-repo/todo-service:v1"
+
+  # Bootstrap placeholder: (Uncomment only if doing initial apply before image exists)
+  # default = "us-docker.pkg.dev/cloudrun/container/hello"
 }
