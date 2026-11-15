@@ -22,7 +22,7 @@ This directory contains the Terraform configuration for provisioning the Cloud R
 ### 1. GCP Project & Authentication
 Ensure you have authenticated with your GCP project:
 ```bash
-export PROJECT_ID="devfest-cloud-sby-2026-csec-run"
+export PROJECT_ID="devfestcloud-sby-2026-csec-run"
 export REGION="us-central1"
 
 gcloud config set project "$PROJECT_ID"
@@ -42,7 +42,7 @@ cp terraform.tfvars.example terraform.tfvars
 
 Update `terraform.tfvars`:
 ```hcl
-project_id = "devfest-cloud-sby-2026-csec-run"
+project_id = "devfestcloud-sby-2026-csec-run"
 region     = "us-central1"
 ```
 

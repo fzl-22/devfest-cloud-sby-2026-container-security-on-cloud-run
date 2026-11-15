@@ -149,7 +149,7 @@ brew install aquasecurity/trivy/trivy
 trivy version
 
 # Optional: warm up the vulnerability database cache
-trivy image us-central1-docker.pkg.dev/devfest-cloud-sby-2026-csec-run/todo-repo/todo-service:stable
+trivy image us-central1-docker.pkg.dev/devfestcloud-sby-2026-csec-run/todo-repo/todo-service:stable
 ```
 
 ---

@@ -58,7 +58,7 @@ Before deploying, ensure you have an active Google Cloud project with billing en
 
 ### 1. Set Environment Variables
 ```bash
-export PROJECT_ID="devfest-cloud-sby-2026-csec-run"
+export PROJECT_ID="devfestcloud-sby-2026-csec-run"
 export REGION="us-central1"
 ```
 
