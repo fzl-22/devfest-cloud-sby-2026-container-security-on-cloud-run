@@ -447,6 +447,7 @@ Automate security gates on every pull request using GitHub Actions. Insecure cod
 name: CI & Security Gates
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [main, master]
   push:
