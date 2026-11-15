@@ -22,13 +22,13 @@
 
 | Timeline | Phase | Workshop Section | Hands-on Objectives |
 |:---:|:---|:---|:---|
-| **00 – 05m** | **Presentation & Intro** | Slide Deck (PowerPoint) | Welcome, speaker intro, workshop goals, and high-level 3-layer security model overview. |
+| **00 – 05m** | **Presentation & Intro** | Slide Deck & [Architectural Foundation](#architectural-foundation-the-3-layer-security-model) | Welcome, speaker intro, workshop goals, and the 3-layer security model overview. |
 | **05 – 15m** | **Software Installation & GCP Project Preparation** | [GETTING_STARTED.md](./GETTING_STARTED.md)<br>[Step 0: GCP Project Preparation](#step-0-gcp-project-preparation) | Verify/install prerequisite tools (`gcloud`, Docker, Terraform, Trivy), authenticate `gcloud`, link billing, configure ADC, and set active project. |
 | **15 – 30m** | **Deploy & Exploit** | [Step 1: Deploy to Cloud Run](#step-1-deploy-to-cloud-run)<br>[Step 2: Test the Live Service](#step-2-test-the-live-service) | Bootstrap Artifact Registry, build/push container, apply Terraform, and exploit leaked secrets via `/diagnostics`. |
-| **30 – 55m** | **AI Audit & Pair Hardening** | [Step 3: Security Review with Antigravity](#step-3-security-review-with-antigravity-agent) | Run `container-security-review` skill; interactively harden Application, Container (distroless + non-root), and Platform layers. |
-| **55 – 75m** | **Deterministic Verification** | [Step 4: Deterministic Verification](#step-4-beyond-ai-review-deterministic-measurement-verification) | Run `govulncheck` (AST reachability) and `trivy` (CVE scanning); apply fix-and-verify dependency remediation. |
-| **75 – 85m** | **Shift-Left Guardrails** | [Step 5: Shift-Left Security](#step-5-shift-left-security-organization-level-guardrails) | Inspect automated GitHub Actions PR gates, PR summary/artifact/SARIF reporting, tool spectrum, and GCP Org Policies. |
-| **85 – 90m** | **Wrap-up & Teardown** | [Step 6: Cleanup](#step-6-cleanup) | Clean up resources via `terraform destroy` or full GCP project deletion, followed by open Q&A. |
+| **30 – 55m** | **Use AI for Security** | [Step 3: Use AI for Security](#step-3-use-ai-for-security--review-with-antigravity-agent) | Run `container-security-review` skill; interactively harden Application, Container (distroless + non-root), and Platform layers. |
+| **55 – 75m** | **Deterministic Verification** | [Step 4: Is AI Enough?](#step-4-is-ai-enough--deterministic-measurement--verification) | Run `govulncheck` (AST reachability) and `trivy` (CVE scanning); apply fix-and-verify dependency remediation. |
+| **75 – 85m** | **Implement Shift-Left Security** | [Step 5: Implement Shift-Left Security](#step-5-implement-shift-left-security--organization-level-guardrails) | Inspect automated GitHub Actions PR gates, PR summary/artifact/SARIF reporting, tool spectrum, and GCP Org Policies. |
+| **85 – 90m** | **Wrap-up & Teardown** | [Step 6: Key Takeaways & Teardown](#step-6-key-takeaways--teardown) | Clean up resources via `terraform destroy` or full GCP project deletion, followed by open Q&A. |
 
 ---
 
@@ -60,6 +60,77 @@
 ├── VULNERABILITIES.md       # Intentional flaws reference (workshop guide)
 └── README.md                # This file (End-to-End Workshop Guide)
 ```
+
+---
+
+## Architectural Foundation: The 3-Layer Security Model
+
+Before deploying and securing workloads on Cloud Run, developers must understand the three distinct operational boundaries of containerized applications: **Platform**, **Container / Runtime**, and **Application**.
+
+> [!NOTE]
+> **Applying Security by Design & Zero Trust**  
+> Under Google Cloud's Well-Architected Framework, defense-in-depth requires enforcing both principles across every layer:
+> - **Zero Trust (Assume Breach):** Never trust runtime inputs, never grant root in containers, and never rely on default cloud service account permissions.
+> - **Security by Design (Fail Closed):** Design configs to fail closed, strip unused OS utilities via distroless builds, and declare least-privilege infrastructure as code.
+
+```mermaid
+flowchart TB
+    subgraph PLATFORM["Layer 3: Platform (Cloud Infrastructure)"]
+        direction TB
+
+        subgraph CONTAINER["Layer 2: Container / Runtime"]
+            direction TB
+
+            subgraph APP_LAYER["Layer 1: Application"]
+                direction TB
+                APP["Application Code & Logic"]
+
+                APP -->|"depends on"| DEPA["Dependency A (Web Framework)"]
+                APP -->|"depends on"| DEPB["Dependency B (Database Driver)"]
+                APP -->|"depends on"| DEPC["Dependency C (Logging / Utilities)"]
+            end
+
+            subgraph OS_ENV["Base Image & System Environment"]
+                direction LR
+                BASE["Base OS (Debian / Alpine / Distroless)"]
+                LIBC["C Standard Library (glibc / musl)"]
+                PKGS["Installed System Packages"]
+                BASE ~~~ LIBC ~~~ PKGS
+            end
+
+            APP_LAYER -->|"runs on"| OS_ENV
+        end
+
+        subgraph P_CONTROLS["Platform Services & Guardrails"]
+            direction LR
+            IAM["IAM & Service Accounts"]
+            NET["Networking (Ingress / Egress & VPC)"]
+            SERVICES["Cloud Services & Secret Store"]
+            IAM ~~~ NET ~~~ SERVICES
+        end
+
+        CONTAINER -->|"deployed on"| P_CONTROLS
+    end
+
+    style PLATFORM fill:none,stroke:#6366f1,stroke-width:2px
+    style CONTAINER fill:none,stroke:#0ea5e9,stroke-width:2px
+    style APP_LAYER fill:none,stroke:#10b981,stroke-width:2px
+    style OS_ENV fill:none,stroke:#f59e0b,stroke-width:2px,stroke-dasharray: 4
+    style P_CONTROLS fill:none,stroke:#a855f7,stroke-width:2px,stroke-dasharray: 4
+```
+
+### The Three Operational Boundaries:
+1. **Layer 1: Application Layer**
+   - **Scope:** Application source code, framework routing, business logic, and configuration loading.
+   - **Focus:** Removing hardcoded credentials, preventing error reflection leaks, and eliminating unauthenticated diagnostic endpoints.
+2. **Layer 2: Container / Runtime Layer**
+   - **Scope:** Base operating system, system packages, dynamic libraries (`glibc`/`musl`), and runtime execution identity.
+   - **Focus:** Multi-stage builds, distroless minimal runtime images, non-root user execution (`USER nonroot:nonroot`), and zero known CVEs.
+3. **Layer 3: Platform / Infrastructure Layer**
+   - **Scope:** Cloud Run service configuration, IAM permissions, networking boundaries, and secret stores.
+   - **Focus:** Dedicated least-privilege service accounts (no default compute SA), ingress boundaries, and Secret Manager integration.
+
+---
 
 ---
 
@@ -196,57 +267,11 @@ curl -i -X DELETE "$SERVICE_URL/api/v1/todos/1" \
 
 ---
 
-## Step 3: Security Review with Antigravity Agent
+## Step 3: Use AI for Security — Review with Antigravity Agent
 
 Instead of manually reviewing code and configurations, leverage the custom workspace skill **`container-security-review`** included in this repository.
 
-The skill is defined in [`.agents/skills/container-security-review/`](./.agents/skills/container-security-review/SKILL.md) and instructs the Antigravity agent to evaluate the project across three operational layers (**Platform**, **Container / Runtime**, **Application**) mapped against **OWASP Top 10:2025**.
-
-```mermaid
-flowchart TB
-    subgraph PLATFORM["Layer 3: Platform (Cloud Infrastructure)"]
-        direction TB
-
-        subgraph CONTAINER["Layer 2: Container / Runtime"]
-            direction TB
-
-            subgraph APP_LAYER["Layer 1: Application"]
-                direction TB
-                APP["Application Code & Logic"]
-
-                APP -->|"depends on"| DEPA["Dependency A (Web Framework)"]
-                APP -->|"depends on"| DEPB["Dependency B (Database Driver)"]
-                APP -->|"depends on"| DEPC["Dependency C (Logging / Utilities)"]
-            end
-
-            subgraph OS_ENV["Base Image & System Environment"]
-                direction LR
-                BASE["Base OS (Debian / Alpine / Distroless)"]
-                LIBC["C Standard Library (glibc / musl)"]
-                PKGS["Installed System Packages"]
-                BASE ~~~ LIBC ~~~ PKGS
-            end
-
-            APP_LAYER -->|"runs on"| OS_ENV
-        end
-
-        subgraph P_CONTROLS["Platform Services & Guardrails"]
-            direction LR
-            IAM["IAM & Service Accounts"]
-            NET["Networking (Ingress / Egress & VPC)"]
-            SERVICES["Cloud Services & Secret Store"]
-            IAM ~~~ NET ~~~ SERVICES
-        end
-
-        CONTAINER -->|"deployed on"| P_CONTROLS
-    end
-
-    style PLATFORM fill:none,stroke:#6366f1,stroke-width:2px
-    style CONTAINER fill:none,stroke:#0ea5e9,stroke-width:2px
-    style APP_LAYER fill:none,stroke:#10b981,stroke-width:2px
-    style OS_ENV fill:none,stroke:#f59e0b,stroke-width:2px,stroke-dasharray: 4
-    style P_CONTROLS fill:none,stroke:#a855f7,stroke-width:2px,stroke-dasharray: 4
-```
+The skill is defined in [`.agents/skills/container-security-review/`](./.agents/skills/container-security-review/SKILL.md) and instructs the Antigravity agent to evaluate the project across the three operational layers (**Platform**, **Container / Runtime**, **Application**) mapped against **OWASP Top 10:2025**.
 
 ### 1. Trigger the Skill & Generate the Report
 In your Antigravity conversation or CLI prompt, trigger the review (the skill automatically saves the complete audit to `reports/SECURITY_ASSESSMENT_REPORT.md`):
@@ -264,7 +289,7 @@ The agent autonomously walks through the 3-layer audit checklist:
 - **Layer 2 — Container:** Base image bloat (`golang:1.26` vs. distroless/alpine), lack of `USER` directive (running as root), baked secrets in `ENV` image layers, and PID 1 signal handling.
 - **Layer 1 — Application:** Fallback secrets in code, debug diagnostic endpoints dumping environment variables, error handling reflection leaks, and dependency integrity.
 
-### 3. Interactive Hardening Walkthrough (Fix One by One)
+### 3. Implement Security by Design & Zero Trust — Interactive 3-Layer Hardening
 
 Instead of having the agent patch everything automatically in a single batch, attendees work interactively layer by layer—**keeping you in full control of every code change**. You direct Antigravity as an interactive pair-programmer: the agent explains each finding and drafts the solution, but you inspect the diffs, understand the security trade-offs, and apply fixes deliberately:
 
@@ -299,7 +324,7 @@ Let's fix Layer 3 (Platform) in infrastructure/cloud_run.tf. Walk me through:
 
 ---
 
-## Step 4: Beyond AI Review — Deterministic Measurement & Verification
+## Step 4: Is AI Enough? — Deterministic Measurement & Verification
 
 > [!IMPORTANT]
 > **Is AI Review Enough?**  
@@ -402,7 +427,7 @@ If deterministic tools flag vulnerabilities, follow a structured remediation loo
 
 ---
 
-## Step 5: Shift-Left Security & Organization-Level Guardrails
+## Step 5: Implement Shift-Left Security & Organization-Level Guardrails
 
 > [!CAUTION]
 > **Why Individual Knowledge & Local Control Are Not Enough:**  
@@ -575,7 +600,32 @@ At the GCP organization or folder level, prevent insecure configurations from be
 
 ---
 
-## Step 6: Cleanup
+## Step 6: Key Takeaways & Teardown
+
+### Workshop Key Takeaways
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                   CORE LESSONS LEARNED                                 │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ 1. The Shared Responsibility Reality:                                                  │
+│    gVisor sandboxes your container from Google and other tenants.                      │
+│    Protecting what runs INSIDE the container is 100% your responsibility.              │
+│                                                                                        │
+│ 2. Security by Design & Zero Trust (All 3 Layers):                                     │
+│    • Platform: Explicit ingress boundaries + dedicated least-privilege service account.│
+│    • Container: Multi-stage distroless + USER nonroot (zero shells, zero package mgr). │
+│    • Application: Strict input validation, fail-closed secrets, no debug endpoints.   │
+│                                                                                        │
+│ 3. The Tooling Balance:                                                                │
+│    • AI for Judgment: Contextual architecture, code logic, and configuration review.   │
+│    • Scanners for Measurement: govulncheck (AST reachability) and Trivy (CVE facts).   │
+│                                                                                        │
+│ 4. Shift-Left & Guardrails:                                                            │
+│    Individual vigilance fails under pressure; automate PR gates and enforce GCP Org   │
+│    Policies to block insecure configurations permanently.                              │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
 
 ### 1. Destroy Terraform-Managed Resources
 ```bash
