@@ -228,9 +228,6 @@ flowchart TB
             end
 
             APP_LAYER -->|"runs on"| OS_ENV
-            DEPA ~~~ BASE
-            DEPB ~~~ LIBC
-            DEPC ~~~ PKGS
         end
 
         subgraph P_CONTROLS["Platform Services & Guardrails"]
