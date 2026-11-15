@@ -17,7 +17,7 @@ Estimated setup time: **15–20 minutes**.
 | [Docker](#2-docker) | Build and run container images locally | 24+ |
 | [Terraform](#3-terraform) | Provision GCP infrastructure as code | 1.9+ |
 | [Trivy](#4-trivy) | Scan container images for CVEs | 0.55+ |
-| [Go & govulncheck](#5-go--govulncheck) | Run deterministic Go code vulnerability analysis | 1.22+ |
+| [Go & govulncheck](#5-go-govulncheck) | Run deterministic Go code vulnerability analysis | 1.22+ |
 | [curl](#6-curl) | Make HTTP requests to the live service | any |
 | [jq](#7-jq) | Parse and extract JSON output in the terminal | 1.6+ |
 
@@ -125,7 +125,7 @@ terraform version
 
 ## 4. Trivy
 
-Official guide: [Aqua Security Trivy Installation Docs](https://trivy.dev/latest/getting-started/installation/)
+Official guide: [Aqua Security Trivy Installation Docs](https://trivy.dev/docs/latest/getting-started/installation/)
 
 ### macOS
 ```bash
@@ -139,10 +139,18 @@ brew install aquasecurity/trivy/trivy
   ```
 - **Fedora / RHEL / CentOS:**
   ```bash
-  sudo rpm -ivh https://github.com/aquasecurity/trivy/releases/download/v0.58.0/trivy_0.58.0_Linux-64bit.rpm
+  cat << 'EOF' | sudo tee /etc/yum.repos.d/trivy.repo
+  [trivy]
+  name=Trivy repository
+  baseurl=https://get.trivy.dev/rpm/releases/$basearch/
+  gpgcheck=1
+  enabled=1
+  gpgkey=https://get.trivy.dev/rpm/public.key
+  EOF
+  sudo dnf -y install trivy
   ```
-  *(Or see the [official Trivy RPM repository guide](https://trivy.dev/latest/getting-started/installation/#rhelcentos))*
-- **Debian / Ubuntu:** Follow the [official Trivy APT installation instructions](https://trivy.dev/latest/getting-started/installation/#package-manager).
+  *(Or see the [official Trivy RPM repository guide](https://trivy.dev/docs/latest/getting-started/installation/#rhelcentos-official))*
+- **Debian / Ubuntu:** Follow the [official Trivy APT installation instructions](https://trivy.dev/docs/latest/getting-started/installation/#debianubuntu-official).
 
 ### Verification & Quick Test
 ```bash
@@ -266,8 +274,8 @@ gcloud auth application-default set-quota-project $PROJECT_ID
 ## Clone the Repository
 
 ```bash
-git clone https://github.com/fzl-22/devfest-cloud-sby-2026-csec-run.git
-cd devfest-cloud-sby-2026-csec-run
+git clone https://github.com/fzl-22/devfestcloud-sby-2026-csec-run.git
+cd devfestcloud-sby-2026-csec-run
 ```
 
 You're ready. Head back to [README.md](./README.md) to start the workshop. 🚀
