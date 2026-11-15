@@ -14,7 +14,7 @@ contrived examples — each one has been observed in production systems.
 ## Layer 1 — Application (`application/`)
 
 ### V-APP-01 · Hardcoded fallback admin key in source code
-- **File:** [`application/main.go`](../application/main.go) — `loadConfig()` function
+- **File:** [`application/internal/config/config.go`](./application/internal/config/config.go) — `LoadConfig()` function
 - **OWASP:** A04 Cryptographic Failures / A07 Authentication Failures
 - **Flaw:** When neither `APP_CONFIG_SECRETS` nor `TODO_ADMIN_KEY` env vars are set,
   the app falls back to a hardcoded key (`dev-test-admin-secret-key-3b9e4a1`).
@@ -22,14 +22,14 @@ contrived examples — each one has been observed in production systems.
 - **Risk:** Any deployment without proper secret injection silently uses the known key.
 
 ### V-APP-02 · Debug mode leaks internal error details to callers
-- **File:** [`application/main.go`](../application/main.go) — `HandleCreate()`
+- **File:** [`application/internal/handler/handler.go`](./application/internal/handler/handler.go) — `HandleCreate()`
 - **OWASP:** A02 Security Misconfiguration / A09 Security Logging & Alerting Failures
 - **Flaw:** When `DEBUG=true`, binding/validation errors return raw Go reflection
   internals and the full request body to the HTTP caller.
 - **Risk:** Reveals internal struct layout, field names, and raw payloads to attackers.
 
 ### V-APP-03 · Unauthenticated diagnostic endpoint enabled in staging
-- **File:** [`application/main.go`](../application/main.go) — `HandleDiagnostics()`
+- **File:** [`application/internal/handler/handler.go`](./application/internal/handler/handler.go) — `HandleDiagnostics()`
 - **OWASP:** A02 Security Misconfiguration / A01 Broken Access Control
 - **Flaw:** A `GET /api/v1/system/diagnostics` endpoint dumps all environment variables
   (including secrets) when `DEBUG=true`. It was added to troubleshoot Cloud Run
@@ -42,7 +42,7 @@ contrived examples — each one has been observed in production systems.
 ## Layer 2 — Container (`application/Dockerfile`)
 
 ### V-CON-01 · Full Golang image used as runtime (no multi-stage build)
-- **File:** [`application/Dockerfile`](../application/Dockerfile) — `FROM golang:1.26`
+- **File:** [`application/Dockerfile`](./application/Dockerfile) — `FROM golang:1.26`
 - **OWASP:** A03 Software Supply Chain Failures / A02 Security Misconfiguration
 - **Flaw:** The same `golang:1.26` image used to compile is also shipped to production.
   This includes the full Debian OS, `bash`, `apt`, the Go compiler, and all build tools.
@@ -50,7 +50,7 @@ contrived examples — each one has been observed in production systems.
   recompile a backdoored binary, and pivot to other services.
 
 ### V-CON-02 · Admin secret baked into Dockerfile ENV layer
-- **File:** [`application/Dockerfile`](../application/Dockerfile) — `ENV TODO_ADMIN_KEY=...`
+- **File:** [`application/Dockerfile`](./application/Dockerfile) — `ENV TODO_ADMIN_KEY=...`
 - **OWASP:** A04 Cryptographic Failures
 - **Flaw:** `TODO_ADMIN_KEY=dev-test-admin-secret-key-3b9e4a1` is set via `ENV` in the
   Dockerfile "so it runs in Docker Desktop without needing extra config".
@@ -59,7 +59,7 @@ contrived examples — each one has been observed in production systems.
   can read it.
 
 ### V-CON-03 · Container runs as root (no USER directive)
-- **File:** [`application/Dockerfile`](../application/Dockerfile) — missing `USER`
+- **File:** [`application/Dockerfile`](./application/Dockerfile) — missing `USER`
 - **OWASP:** A01 Broken Access Control
 - **Flaw:** No `USER` directive means the process runs as UID 0 (root) inside the container.
 - **Risk:** Any exploit immediately has root-level access to the container filesystem,
@@ -70,7 +70,7 @@ contrived examples — each one has been observed in production systems.
 ## Layer 3 — Platform (`infrastructure/`)
 
 ### V-PLT-01 · DEBUG=true deployed to staging/production
-- **File:** [`infrastructure/cloud_run.tf`](../infrastructure/cloud_run.tf) — `DEBUG` env var
+- **File:** [`infrastructure/cloud_run.tf`](./infrastructure/cloud_run.tf) — `DEBUG` env var
 - **OWASP:** A02 Security Misconfiguration
 - **Flaw:** `DEBUG=true` is hardcoded in the Terraform Cloud Run service definition,
   enabling the diagnostic endpoint (V-APP-03) and verbose error responses (V-APP-02)
@@ -78,8 +78,8 @@ contrived examples — each one has been observed in production systems.
 - **Risk:** Activates all debug-gated vulnerabilities in staging/production.
 
 ### V-PLT-02 · Secrets bundled as a JSON blob in a single Secret Manager secret
-- **File:** [`infrastructure/cloud_run.tf`](../infrastructure/cloud_run.tf) — `APP_CONFIG_SECRETS` env var
-- **File:** [`infrastructure/secrets.tf`](../infrastructure/secrets.tf) — `todo_secrets_v1`
+- **File:** [`infrastructure/cloud_run.tf`](./infrastructure/cloud_run.tf) — `APP_CONFIG_SECRETS` env var
+- **File:** [`infrastructure/secrets.tf`](./infrastructure/secrets.tf) — `todo_secrets_v1`
 - **OWASP:** A04 Cryptographic Failures / A02 Security Misconfiguration
 - **Flaw:** Multiple credentials (database credentials, JWT signing key, admin API key, SaaS tokens) are bundled into one JSON blob and mounted as a single environment variable (`APP_CONFIG_SECRETS`).
 - **Risk:** High blast radius. A single point of compromise exposes every system credential at once (database, auth, external APIs). Environment variables are also visible via `/proc/1/environ`, memory dumps, and the diagnostics endpoint.
