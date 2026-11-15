@@ -228,9 +228,6 @@ flowchart TB
             end
 
             APP_LAYER -->|"runs on"| OS_ENV
-            DEPA ~~~ BASE
-            DEPB ~~~ LIBC
-            DEPC ~~~ PKGS
         end
 
         subgraph P_CONTROLS["Platform Services & Guardrails"]
@@ -244,24 +241,11 @@ flowchart TB
         CONTAINER -->|"deployed on"| P_CONTROLS
     end
 
-    style PLATFORM fill:rgba(99,102,241,0.06),stroke:#6366f1,stroke-width:2px
-    style CONTAINER fill:rgba(14,165,233,0.07),stroke:#0ea5e9,stroke-width:2px
-    style APP_LAYER fill:rgba(16,185,129,0.08),stroke:#10b981,stroke-width:2px
-    style OS_ENV fill:rgba(245,158,11,0.06),stroke:#f59e0b,stroke-width:1.5px,stroke-dasharray: 4 4
-    style P_CONTROLS fill:rgba(168,85,247,0.06),stroke:#a855f7,stroke-width:1.5px,stroke-dasharray: 4 4
-
-    style APP fill:rgba(16,185,129,0.18),stroke:#10b981
-    style DEPA fill:rgba(16,185,129,0.12),stroke:#10b981
-    style DEPB fill:rgba(16,185,129,0.12),stroke:#10b981
-    style DEPC fill:rgba(16,185,129,0.12),stroke:#10b981
-
-    style BASE fill:rgba(245,158,11,0.12),stroke:#f59e0b
-    style LIBC fill:rgba(245,158,11,0.12),stroke:#f59e0b
-    style PKGS fill:rgba(245,158,11,0.12),stroke:#f59e0b
-
-    style IAM fill:rgba(168,85,247,0.12),stroke:#a855f7
-    style NET fill:rgba(168,85,247,0.12),stroke:#a855f7
-    style SERVICES fill:rgba(168,85,247,0.12),stroke:#a855f7
+    style PLATFORM fill:none,stroke:#6366f1,stroke-width:2px
+    style CONTAINER fill:none,stroke:#0ea5e9,stroke-width:2px
+    style APP_LAYER fill:none,stroke:#10b981,stroke-width:2px
+    style OS_ENV fill:none,stroke:#f59e0b,stroke-width:2px,stroke-dasharray: 4
+    style P_CONTROLS fill:none,stroke:#a855f7,stroke-width:2px,stroke-dasharray: 4
 ```
 
 ### 1. Trigger the Skill & Generate the Report
