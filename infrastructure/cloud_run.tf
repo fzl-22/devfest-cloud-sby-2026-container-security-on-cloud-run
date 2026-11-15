@@ -14,6 +14,10 @@
 # 4. No VPC Egress connector / unrestricted outbound internet.
 # ==============================================================================
 
+locals {
+  image = coalesce(var.image, "${var.region}-docker.pkg.dev/${var.project_id}/todo-repo/todo-service:stable")
+}
+
 resource "google_cloud_run_v2_service" "todo_service" {
   name                = var.service_name
   location            = var.region
@@ -31,7 +35,7 @@ resource "google_cloud_run_v2_service" "todo_service" {
     }
 
     containers {
-      image = var.image
+      image = local.image
 
       ports {
         container_port = 8080

@@ -32,15 +32,41 @@ resource "google_project_iam_member" "secret_broad" {
 # ==============================================================================
 # Cloud Build & Artifact Registry Permissions
 # ==============================================================================
-# Allow the project's default Cloud Build service account to push images to Artifact Registry
+# Allow the project's default Cloud Build & Compute service accounts to push images to Artifact Registry
 data "google_project" "current" {
   project_id = var.project_id
 }
 
+# Legacy Cloud Build service account
 resource "google_project_iam_member" "cloudbuild_registry_writer" {
   project = var.project_id
   role    = "roles/artifactregistry.writer"
   member  = "serviceAccount:${data.google_project.current.number}@cloudbuild.gserviceaccount.com"
+
+  depends_on = [google_project_service.cloudbuild]
+}
+
+# Default Compute service account used by Cloud Build in modern GCP projects
+resource "google_project_iam_member" "compute_cloudbuild_storage" {
+  project = var.project_id
+  role    = "roles/storage.objectViewer"
+  member  = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
+
+  depends_on = [google_project_service.cloudbuild]
+}
+
+resource "google_project_iam_member" "compute_cloudbuild_writer" {
+  project = var.project_id
+  role    = "roles/artifactregistry.writer"
+  member  = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
+
+  depends_on = [google_project_service.cloudbuild]
+}
+
+resource "google_project_iam_member" "compute_cloudbuild_logs" {
+  project = var.project_id
+  role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
 
   depends_on = [google_project_service.cloudbuild]
 }

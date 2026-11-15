@@ -28,11 +28,6 @@ variable "service_name" {
 # ==============================================================================
 variable "image" {
   type        = string
-  description = "Container image URI for the Todo application"
-
-  # Production target: The real Todo microservice container image
-  default = "${var.region}-docker.pkg.dev/${var.project_id}/todo-repo/todo-service:stable"
-
-  # Bootstrap placeholder: (Uncomment only if doing initial apply before image exists)
-  # default = "us-docker.pkg.dev/cloudrun/container/hello"
+  description = "Container image URI for the Todo application. Leave null to default to <region>-docker.pkg.dev/<project_id>/todo-repo/todo-service:stable"
+  default     = null
 }

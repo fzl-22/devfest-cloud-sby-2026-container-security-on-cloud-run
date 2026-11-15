@@ -38,10 +38,6 @@
 │   ├── variables.tf         # Input variables (project_id, region, image)
 │   ├── outputs.tf           # Endpoints and IDs
 │   └── README.md            # Infrastructure setup & variables guide
-├── scripts/
-│   ├── deploy_todo.sh       # Automated build & deploy script
-│   ├── attack.sh            # Exploit and test script
-│   └── cleanup.sh           # Resource teardown script
 ├── reports/
 │   ├── SECURITY_ASSESSMENT_REPORT.md   # Generated 3-layer security audit report
 │   └── CONTAINER_SCAN_REPORT.md        # Deterministic Trivy container vulnerability report
@@ -91,38 +87,35 @@ gcloud auth application-default set-quota-project "$PROJECT_ID"
 
 ## Step 1: Deploy to Cloud Run
 
-You can deploy using either the automated script or manual step-by-step commands.
+Deploying to a fresh GCP project follows a 3-stage sequence to ensure resources are created in proper order without dependency deadlocks (Artifact Registry must exist before images can be pushed, and the container image must exist before Cloud Run can deploy it):
 
-### Option A: Automated Build & Deploy (Recommended)
-
-From the repository root:
-
+### 1. Provision Artifact Registry, APIs & Cloud Build Permissions
+First, initialize Terraform and provision Artifact Registry, required APIs, and Cloud Build permissions for the compute service account:
 ```bash
-./scripts/deploy_todo.sh
+cd infrastructure
+terraform init
+terraform apply \
+  -target=google_project_service.artifactregistry \
+  -target=google_project_service.cloudbuild \
+  -target=google_artifact_registry_repository.todo_repo \
+  -target=google_project_iam_member.compute_cloudbuild_storage \
+  -target=google_project_iam_member.compute_cloudbuild_writer \
+  -target=google_project_iam_member.compute_cloudbuild_logs \
+  -var="project_id=$PROJECT_ID"
+cd ..
 ```
 
-This script:
-1. Ensures the `todo-repo` Artifact Registry repository exists in `$REGION`.
-2. Packages and builds `application/` via **Google Cloud Build** (`us-central1-docker.pkg.dev/$PROJECT_ID/todo-repo/todo-service:stable`).
-3. Provisions the infrastructure with Terraform and deploys the container to Cloud Run.
-4. Outputs the live service URL.
+### 2. Build & Push the Todo Container Image
+With `todo-repo` and Cloud Build permissions provisioned, build and push the container image to Artifact Registry:
 
----
----
-
-### Option B: Manual Step-by-Step Deploy
-
-#### 1. Build & Push the Todo Container Image First
-Build the custom container image and push it to Artifact Registry:
-
-* **Choice 1: Using Cloud Build (Fastest, no local Docker needed):**
+* **Choice A: Using Cloud Build (Fastest, no local Docker needed):**
   ```bash
   gcloud builds submit ./application \
     --project="$PROJECT_ID" \
     --tag="${REGION}-docker.pkg.dev/${PROJECT_ID}/todo-repo/todo-service:stable"
   ```
 
-* **Choice 2: Using Local Docker (`docker build` & `docker push`):**
+* **Choice B: Using Local Docker (`docker build` & `docker push`):**
   ```bash
   # Authenticate Docker CLI to Artifact Registry
   gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
@@ -136,15 +129,13 @@ Build the custom container image and push it to Artifact Registry:
   docker push "${REGION}-docker.pkg.dev/${PROJECT_ID}/todo-repo/todo-service:stable"
   ```
 
-#### 2. Provision the Infrastructure via Terraform
-Now navigate to `infrastructure/` and run `terraform apply`:
+### 3. Deploy Remaining Infrastructure (Cloud Run, IAM, Secrets)
+Now that the container image exists in Artifact Registry, provision Cloud Run and all supporting services:
 ```bash
 cd infrastructure
-terraform init
 terraform apply -var="project_id=$PROJECT_ID"
 cd ..
 ```
-*Note: In Git, `infrastructure/variables.tf` already points to `todo-service:stable` by default. If you ever need to apply Terraform on a fresh project before the image exists, you can temporarily uncomment the `hello` placeholder in `variables.tf`.*
 
 ---
 ---
