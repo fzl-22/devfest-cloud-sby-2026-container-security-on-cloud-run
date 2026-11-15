@@ -2,7 +2,7 @@
 # Stage 1: Build Environment
 # Compiles a fully static binary; this build stage NEVER ships to production.
 # ──────────────────────────────────────────────────────────────────────────────
-FROM golang:1.26 AS builder
+FROM golang:1.27.4 AS builder
 
 WORKDIR /app
 
