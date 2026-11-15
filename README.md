@@ -39,7 +39,8 @@
 │   ├── outputs.tf           # Endpoints and IDs
 │   └── README.md            # Infrastructure setup & variables guide
 ├── reports/
-│   ├── SECURITY_ASSESSMENT_REPORT.md   # Generated 3-layer security audit report
+│   ├── SECURITY_ASSESSMENT_REPORT.md   # AI-driven 3-layer security audit report
+│   ├── APPLICATION_SCAN_REPORT.md      # Deterministic Go application vulnerability report
 │   └── CONTAINER_SCAN_REPORT.md        # Deterministic Trivy container vulnerability report
 ├── GETTING_STARTED.md       # Prerequisite tools installation guide
 ├── VULNERABILITIES.md       # Intentional flaws reference (workshop guide)
@@ -101,7 +102,8 @@ terraform apply \
   -target=google_project_iam_member.compute_cloudbuild_storage \
   -target=google_project_iam_member.compute_cloudbuild_writer \
   -target=google_project_iam_member.compute_cloudbuild_logs \
-  -var="project_id=$PROJECT_ID"
+  -var="project_id=$PROJECT_ID" \
+  -var="region=$REGION"
 cd ..
 ```
 
@@ -133,7 +135,9 @@ With `todo-repo` and Cloud Build permissions provisioned, build and push the con
 Now that the container image exists in Artifact Registry, provision Cloud Run and all supporting services:
 ```bash
 cd infrastructure
-terraform apply -var="project_id=$PROJECT_ID"
+terraform apply \
+  -var="project_id=$PROJECT_ID" \
+  -var="region=$REGION"
 cd ..
 ```
 
@@ -184,12 +188,76 @@ Instead of manually reviewing code and configurations, leverage the custom works
 
 The skill is defined in [`.agents/skills/container-security-review/`](./.agents/skills/container-security-review/SKILL.md) and instructs the Antigravity agent to evaluate the project across three operational layers (**Platform**, **Container / Runtime**, **Application**) mapped against **OWASP Top 10:2025**.
 
+```mermaid
+flowchart TB
+    subgraph PLATFORM["Layer 3: Platform (Cloud Infrastructure)"]
+        direction TB
+
+        subgraph CONTAINER["Layer 2: Container / Runtime"]
+            direction TB
+
+            subgraph APP_LAYER["Layer 1: Application"]
+                direction TB
+                APP["Application Code & Logic"]
+
+                APP -->|"depends on"| DEPA["Dependency A (Web Framework)"]
+                APP -->|"depends on"| DEPB["Dependency B (Database Driver)"]
+                APP -->|"depends on"| DEPC["Dependency C (Logging / Utilities)"]
+            end
+
+            subgraph OS_ENV["Base Image & System Environment"]
+                direction LR
+                BASE["Base OS (Debian / Alpine / Distroless)"]
+                LIBC["C Standard Library (glibc / musl)"]
+                PKGS["Installed System Packages"]
+                BASE ~~~ LIBC ~~~ PKGS
+            end
+
+            APP_LAYER -->|"runs on"| OS_ENV
+            DEPA ~~~ BASE
+            DEPB ~~~ LIBC
+            DEPC ~~~ PKGS
+        end
+
+        subgraph P_CONTROLS["Platform Services & Guardrails"]
+            direction LR
+            IAM["IAM & Service Accounts"]
+            NET["Networking (Ingress / Egress & VPC)"]
+            SERVICES["Cloud Services & Secret Store"]
+            IAM ~~~ NET ~~~ SERVICES
+        end
+
+        CONTAINER -->|"deployed on"| P_CONTROLS
+    end
+
+    style PLATFORM fill:rgba(99,102,241,0.06),stroke:#6366f1,stroke-width:2px
+    style CONTAINER fill:rgba(14,165,233,0.07),stroke:#0ea5e9,stroke-width:2px
+    style APP_LAYER fill:rgba(16,185,129,0.08),stroke:#10b981,stroke-width:2px
+    style OS_ENV fill:rgba(245,158,11,0.06),stroke:#f59e0b,stroke-width:1.5px,stroke-dasharray: 4 4
+    style P_CONTROLS fill:rgba(168,85,247,0.06),stroke:#a855f7,stroke-width:1.5px,stroke-dasharray: 4 4
+
+    style APP fill:rgba(16,185,129,0.18),stroke:#10b981
+    style DEPA fill:rgba(16,185,129,0.12),stroke:#10b981
+    style DEPB fill:rgba(16,185,129,0.12),stroke:#10b981
+    style DEPC fill:rgba(16,185,129,0.12),stroke:#10b981
+
+    style BASE fill:rgba(245,158,11,0.12),stroke:#f59e0b
+    style LIBC fill:rgba(245,158,11,0.12),stroke:#f59e0b
+    style PKGS fill:rgba(245,158,11,0.12),stroke:#f59e0b
+
+    style IAM fill:rgba(168,85,247,0.12),stroke:#a855f7
+    style NET fill:rgba(168,85,247,0.12),stroke:#a855f7
+    style SERVICES fill:rgba(168,85,247,0.12),stroke:#a855f7
+```
+
 ### 1. Trigger the Skill & Generate the Report
 In your Antigravity conversation or CLI prompt, trigger the review (the skill automatically saves the complete audit to `reports/SECURITY_ASSESSMENT_REPORT.md`):
 
 ```text
 Perform a full security review of the application, container, and infrastructure using the container-security-review skill.
 ```
+
+*A detailed analysis of this review is documented in [`reports/SECURITY_ASSESSMENT_REPORT.md`](./reports/SECURITY_ASSESSMENT_REPORT.md).*
 
 ### 2. What the Agent Inspects
 
@@ -198,12 +266,38 @@ The agent autonomously walks through the 3-layer audit checklist:
 - **Layer 2 — Container:** Base image bloat (`golang:1.26` vs. distroless/alpine), lack of `USER` directive (running as root), baked secrets in `ENV` image layers, and PID 1 signal handling.
 - **Layer 1 — Application:** Fallback secrets in code, debug diagnostic endpoints dumping environment variables, error handling reflection leaks, and dependency integrity.
 
-### 3. Apply the Hardened Fixes
-Once the agent provides findings with file links and severity mappings, you can prompt it to automatically harden your codebase:
+### 3. Interactive Hardening Walkthrough (Fix One by One)
 
+Instead of having the agent patch everything automatically in a single batch, attendees work interactively layer by layer—**keeping you in full control of every code change**. You direct Antigravity as an interactive pair-programmer: the agent explains each finding and drafts the solution, but you inspect the diffs, understand the security trade-offs, and apply fixes deliberately:
+
+#### Phase 1: Harden Layer 1 — Application Code (`application/`)
+Prompt the agent to guide you through fixing the application-level logic flaws:
 ```text
-Apply the recommended container fixes to application/Dockerfile and harden cloud_run.tf.
+Let's fix Layer 1 (Application) findings one by one. Guide me through:
+1. Removing the hardcoded fallback admin key in application/internal/config/config.go.
+2. Eliminating debug reflection leaks in HTTP error responses.
+3. Disabling the unauthenticated /api/v1/system/diagnostics endpoint.
 ```
+> **What attendees learn:** Secure configuration loading (failing closed when credentials are missing instead of falling back to insecure defaults), sanitizing error responses to prevent information disclosure, and eliminating debug diagnostic endpoints from production code.
+
+#### Phase 2: Harden Layer 2 — Container Definition (`application/Dockerfile`)
+Prompt the agent to guide you through restructuring the container build:
+```text
+Let's fix Layer 2 (Container). Walk me through:
+1. Converting application/Dockerfile into a multi-stage distroless build (gcr.io/distroless/static-debian12).
+2. Removing the baked ENV TODO_ADMIN_KEY layer secret.
+3. Enforcing non-root execution with USER nonroot:nonroot (UID 65532).
+```
+> **What attendees learn:** Reducing attack surface from hundreds of megabytes to a minimal static binary, stripping OS package managers (`apt`, `dpkg`) and shells (`bash`, `sh`), eliminating baked layer secrets visible via `docker history`, and dropping root privileges.
+
+#### Phase 3: Harden Layer 3 — Platform & Cloud Run (`infrastructure/`)
+Prompt the agent to guide you through Terraform infrastructure changes:
+```text
+Let's fix Layer 3 (Platform) in infrastructure/cloud_run.tf. Walk me through:
+1. Setting DEBUG="false" and ENVIRONMENT="production".
+2. Reviewing the IAM service account permissions to ensure least privilege.
+```
+> **What attendees learn:** Preventing staging/debug flags from leaking into deployed cloud services and enforcing least-privilege service account scopes.
 
 ---
 
@@ -221,33 +315,51 @@ Apply the recommended container fixes to application/Dockerfile and harden cloud
 Run Go's official vulnerability checker on the application code:
 
 ```bash
+# Ensure reports directory exists
+mkdir -p reports
+
 cd application
 go install golang.org/x/vuln/cmd/govulncheck@latest
-govulncheck ./...
+
+# Output audit results directly to reports/APPLICATION_SCAN_REPORT.md
+govulncheck ./... | tee ../reports/APPLICATION_SCAN_REPORT.md
 cd ..
 ```
 *`govulncheck` analyzes your call graph — it alerts you if your compiled binary actually calls known-vulnerable symbols in imported modules, avoiding false-positive noise.*
+
+> [!NOTE]
+> **Why doesn't `govulncheck` show severity ratings (CRITICAL / HIGH)?**  
+> `govulncheck` intentionally avoids static CVSS severity ratings. In application source code, CVSS scores are often misleading—a "Critical" CVE in an imported library is harmless if your application never executes that symbol. `govulncheck` prioritizes **Call-Graph Reachability**: it separates vulnerabilities into **Called** (real attack vectors in your execution path) versus **Uncalled** (harmless dead code in required dependencies).
+
+*A detailed analysis of this audit is documented in [`reports/APPLICATION_SCAN_REPORT.md`](./reports/APPLICATION_SCAN_REPORT.md).*
 
 ### 2. Deterministic Container Audit with `trivy`
 Scan the active production/staging container image for OS-level and library vulnerabilities:
 
 ```bash
+# Ensure reports directory exists
+mkdir -p reports
+
 # Output scan results directly to reports/CONTAINER_SCAN_REPORT.md
 trivy image \
   --skip-version-check \
   --output reports/CONTAINER_SCAN_REPORT.md \
-  us-central1-docker.pkg.dev/$PROJECT_ID/todo-repo/todo-service:stable
+  "${REGION}-docker.pkg.dev/${PROJECT_ID}/todo-repo/todo-service:stable"
 
 # Or export structured JSON for automated tooling
 trivy image \
   --skip-version-check \
   --format json \
   --output reports/CONTAINER_SCAN_REPORT.json \
-  us-central1-docker.pkg.dev/$PROJECT_ID/todo-repo/todo-service:stable
+  "${REGION}-docker.pkg.dev/${PROJECT_ID}/todo-repo/todo-service:stable"
 ```
 *A detailed analysis of this scan is documented in [`reports/CONTAINER_SCAN_REPORT.md`](./reports/CONTAINER_SCAN_REPORT.md).*
 
 Compare against the hardened distroless image after applying fixes:
+
+> [!NOTE]
+> Run the following build **after** completing the Phase 2 Dockerfile hardening in Step 3.3 (converting to multi-stage distroless and dropping root):
+
 ```bash
 # Build the hardened distroless image locally
 docker build -t todo-service:hardened ./application
@@ -257,10 +369,38 @@ trivy image todo-service:hardened
 ```
 
 ### 3. Fix & Verify Loop
-If deterministic tools flag vulnerabilities:
-1. Bump affected library versions in `application/go.mod` (`go get -u ... && go mod tidy`).
-2. Update base image digest references in `application/Dockerfile`.
-3. Re-run `govulncheck ./...` and `trivy image ...` until zero high/critical vulnerabilities remain.
+If deterministic tools flag vulnerabilities, follow a structured remediation loop:
+
+1. **Remediate Application Dependencies (`application/go.mod`)**:
+   - **Trace the Caller First**: Review the call traces in `govulncheck`. If a vulnerability is in a **transitive (indirect) dependency** (for example, `brotli` or `klauspost/compress` used inside Fiber), do not immediately bump that indirect package alone. Updating an indirect dependency directly can break compatibility with the library that imports it.
+   - **Upgrade the Direct Dependency First**: Update the top-level module your app actually imports (e.g., Fiber):
+     ```bash
+     cd application
+     go get -u github.com/gofiber/fiber/v3
+     go mod tidy
+     ```
+     *Why?* The Fiber maintainers test and verify compatible versions of `brotli` and `compress`. Upgrading Fiber lets it safely pull in the tested, patched sub-dependencies.
+   - **Pin the Transitive Dependency (Fallback)**: If the upstream direct dependency has not released a fix yet, you can explicitly pin the patched indirect library as a temporary workaround:
+     ```bash
+     go get -u github.com/andybalholm/brotli@v1.2.7
+     go mod tidy
+     go test ./...  # Always run tests to verify no breaking changes were introduced
+     ```
+
+2. **Remediate Container OS Packages & Base Image (`application/Dockerfile`)**:
+   - Migrate to a multi-stage distroless base image (`gcr.io/distroless/static-debian12`) which strips the package manager, shell, and Debian system libraries.
+   - **Pin Base Images Securely**: Avoid mutable tags like `:latest` which cause non-deterministic builds.
+     - **Strict Immutability (Best Practice)**: Pin by cryptographic digest (e.g., `gcr.io/distroless/static-debian12@sha256:...`) to guarantee bit-for-bit reproducible builds and protect against supply chain tampering.
+     - **Pragmatic Middle Ground**: If automated digest-updating tooling (like Renovate or Dependabot) is not yet integrated, pin down to exact semantic patch versions (e.g., `golang:1.24.1-alpine3.21` or specific release tags) instead of floating major tags, allowing controlled patch upgrades without build surprises.
+
+3. **Re-verify Deterministically**:
+   ```bash
+   # Verify zero called symbols remain in Go code
+   (cd application && govulncheck ./...)
+
+   # Verify container CVEs drop to near zero
+   trivy image todo-service:hardened
+   ```
 
 ---
 
@@ -285,28 +425,104 @@ If deterministic tools flag vulnerabilities:
 └─────────────────────┴───────────────────────────┴──────────────────────────────────────┘
 ```
 
-### 1. Shift-Left CI/CD Pipeline Gates (Enforce Before Deploy)
-Automate security enforcement on every pull request and build before anything ever reaches Artifact Registry:
+### 1. Shift-Left CI/CD Pipeline Gates & Automated Reporting
+Automate security gates on every pull request using GitHub Actions. Insecure code or vulnerable containers are blocked before merging, and comprehensive audit reports are automatically published to the **GitHub Job Summary**, stored as **downloadable artifacts**, and integrated into the **GitHub Security (SARIF)** dashboard:
 
 ```yaml
-# Example Cloud Build / CI Pipeline Step
-steps:
-  # Gate 1: Code Vulnerability Gate
-  - name: 'golang:1.26'
-    entrypoint: 'sh'
-    args:
-      - '-c'
-      - 'go install golang.org/x/vuln/cmd/govulncheck@latest && govulncheck ./...'
+# .github/workflows/security-gates.yml
+name: Security Gates & Audit Reports
 
-  # Gate 2: Container Vulnerability Gate (Fails build on CRITICAL/HIGH CVEs)
-  - name: 'aquasec/trivy:latest'
-    args:
-      - 'image'
-      - '--exit-code'
-      - '1'
-      - '--severity'
-      - 'CRITICAL,HIGH'
-      - 'us-central1-docker.pkg.dev/$PROJECT_ID/todo-repo/todo-service:staging'
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+jobs:
+  security-scan:
+    name: Shift-Left Vulnerability Gates
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # Required for GitHub Security tab SARIF upload
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create Reports Directory
+        run: mkdir -p reports
+
+      # Gate 1: Application Vulnerability Gate (Call-graph reachability)
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'application/go.mod'
+
+      - name: Run govulncheck & Save Report
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          (cd application && govulncheck ./...) | tee reports/APPLICATION_SCAN_REPORT.md
+
+      # Gate 2: Container Image Vulnerability Gate
+      - name: Build Candidate Container Image
+        run: |
+          docker build -t todo-service:candidate ./application
+
+      - name: Run Trivy Scanner (Generate Table Report)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'todo-service:candidate'
+          format: 'table'
+          output: 'reports/CONTAINER_SCAN_REPORT.md'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Run Trivy Scanner (Generate SARIF for GitHub Security)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'todo-service:candidate'
+          format: 'sarif'
+          output: 'reports/trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      # =========================================================================
+      # Automated Reporting (Always runs, even when vulnerabilities are found)
+      # =========================================================================
+      - name: Publish Audit Summary to GitHub Actions Job Summary
+        if: always()
+        run: |
+          echo "## 🛡️ Security Audit Summary" >> $GITHUB_STEP_SUMMARY
+          echo "### 1. Application Vulnerabilities (govulncheck)" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          cat reports/APPLICATION_SCAN_REPORT.md >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "### 2. Container OS & Dependencies (Trivy)" >> $GITHUB_STEP_SUMMARY
+          echo '```text' >> $GITHUB_STEP_SUMMARY
+          cat reports/CONTAINER_SCAN_REPORT.md >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Security Reports as Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-audit-reports
+          path: reports/
+
+      - name: Upload SARIF to GitHub Security Tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'reports/trivy-results.sarif'
+          category: 'trivy-container'
+
+      # Gate Enforcement: Fails the PR check if unmitigated CRITICAL/HIGH CVEs exist
+      - name: Enforce Trivy Exit Code
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'todo-service:candidate'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
 ```
 
 ### 2. Ecosystem Tooling Spectrum (Industry Options)
@@ -333,14 +549,21 @@ At the GCP organization or folder level, prevent insecure configurations from be
 
 ## Step 6: Cleanup
 
-To destroy all provisioned cloud resources:
-
+### 1. Destroy Terraform-Managed Resources
 ```bash
 cd infrastructure
-terraform destroy -var="project_id=$PROJECT_ID"
+terraform destroy \
+  -var="project_id=$PROJECT_ID" \
+  -var="region=$REGION"
+cd ..
 ```
 
-To delete the entire project and guarantee zero ongoing charges:
+> [!TIP]
+> **Non-Empty Artifact Registry Repositories:**  
+> If `terraform destroy` encounters an error deleting `todo-repo` because container images are still stored inside it, you can delete the repository via `gcloud artifacts repositories delete todo-repo --location="$REGION" --quiet`, or simply proceed to delete the entire project below.
+
+### 2. Delete the GCP Project (Recommended Complete Teardown)
+To wipe all container images, secrets, Cloud Build history, and guarantee zero ongoing charges:
 ```bash
-gcloud projects delete "$PROJECT_ID"
+gcloud projects delete "$PROJECT_ID" --quiet
 ```

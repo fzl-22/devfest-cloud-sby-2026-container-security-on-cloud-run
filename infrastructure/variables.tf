@@ -19,12 +19,8 @@ variable "service_name" {
 # ==============================================================================
 # Container Image Configuration
 # ==============================================================================
-# The default in Git points directly to the real application image.
-#
-# NOTE FOR FRESH PROJECT BOOTSTRAP:
-# If you are deploying to a brand-new GCP project before building the image,
-# temporarily uncomment the 'hello' placeholder below for your first apply,
-# OR build and push the container first with `gcloud builds submit`.
+# Defaults to null; cloud_run.tf coalesces to:
+#   ${var.region}-docker.pkg.dev/${var.project_id}/todo-repo/todo-service:stable
 # ==============================================================================
 variable "image" {
   type        = string
