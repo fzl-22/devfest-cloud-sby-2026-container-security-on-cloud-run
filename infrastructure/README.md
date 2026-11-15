@@ -6,9 +6,11 @@ This directory contains the Terraform configuration for provisioning the Cloud R
 
 ## Architecture Components
 
-* **`main.tf`**: Google provider, enables core Google APIs (`run`, `artifactregistry`, `secretmanager`), and creates the Artifact Registry repository (`todo-repo`).
+* **`main.tf`**: Terraform version requirements and Google provider configuration.
+* **`services.tf`**: Enables required Google Cloud APIs (`run`, `artifactregistry`, `secretmanager`, `cloudbuild`).
+* **`artifact_registry.tf`**: Provisions the Artifact Registry repository (`todo-repo`) for container images.
 * **`service_account.tf`**: Provisions the dedicated `todo-app-sa` service account with broad permissions (`storage.admin`, `secretmanager.secretAccessor`, `datastore.user`).
-* **`secrets.tf`**: Provisions the Secret Manager secret (`todo-app-secrets`) containing bundled JSON configuration (`admin_api_key`, `jwt_secret`).
+* **`secrets.tf`**: Provisions the Secret Manager secret (`todo-app-secrets`) containing bundled JSON configuration (database credentials, auth tokens, admin key, SaaS API tokens).
 * **`cloud_run.tf`**: Deploys the Cloud Run v2 service (`todo-app-default`), scaling boundaries (`max_instance_count = 2`), TCP startup probes, public ingress (`allUsers`), and secret mounts.
 * **`variables.tf`**: Input variables for project ID, region (default `us-central1`), image URI, and service name.
 * **`outputs.tf`**: Exposes the live Cloud Run endpoint, service account email, and repository URIs.

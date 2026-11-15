@@ -15,7 +15,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy source and compile statically
-COPY main.go ./
+COPY . ./
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/todo-service .
 
 EXPOSE 8080

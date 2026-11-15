@@ -14,22 +14,32 @@ This directory contains the application source code and container definition for
 
 ## Codebase Structure
 
-* **`main.go`**:
-  * Fiber application initialization with `logger`, `recover`, and `cors` middleware.
-  * In-memory CRUD todo store (`sync.RWMutex`).
-  * `LoadConfig()`: Loads `APP_CONFIG_SECRETS` (JSON from Secret Manager), `TODO_ADMIN_KEY`, with development fallback.
-  * API Endpoints:
-    * `GET /healthz`: Startup and liveness check.
-    * `GET /api/v1/todos`: List all todos.
-    * `GET /api/v1/todos/:id`: Get a specific todo.
-    * `POST /api/v1/todos`: Create a new todo.
-    * `DELETE /api/v1/todos/:id`: Delete a todo (Requires valid `X-Admin-Key` header).
-    * `GET /api/v1/system/diagnostics`: System diagnostics endpoint (Active when `DEBUG=true`).
-* **`Dockerfile`**:
-  * Single-stage container image based on `golang:1.26`.
-  * Builds a static Linux binary (`CGO_ENABLED=0`).
-  * Contains baked-in `ENV TODO_ADMIN_KEY`.
-* **`go.mod` & `go.sum`**: Pinned module dependencies.
+Follows the standard Go project layout with internal packages:
+
+```
+application/
+├── Dockerfile                  # Container build recipe
+├── go.mod / go.sum             # Module dependencies
+├── main.go                     # Entrypoint: wire config, store, handlers & HTTP server
+└── internal/
+    ├── config/                 # Runtime configuration & Secret Manager JSON parser
+    ├── handler/                # Fiber HTTP request handlers, routes & diagnostics
+    ├── model/                  # Domain types and request/response DTOs
+    └── store/                  # In-memory thread-safe data store
+```
+
+* **`main.go`**: Lean entrypoint wiring together configuration, repository, and HTTP server middleware.
+* **`internal/config`**: Loads `APP_CONFIG_SECRETS` (JSON from Secret Manager), `TODO_ADMIN_KEY`, with development fallback.
+* **`internal/handler`**: Fiber HTTP controllers and route registration:
+  * `GET /healthz`: Startup and liveness check.
+  * `GET /api/v1/todos`: List all todos.
+  * `GET /api/v1/todos/:id`: Get a specific todo.
+  * `POST /api/v1/todos`: Create a new todo.
+  * `DELETE /api/v1/todos/:id`: Delete a todo (Requires valid `X-Admin-Key` header).
+  * `GET /api/v1/system/diagnostics`: System diagnostics endpoint (Active when `DEBUG=true`).
+* **`internal/store`**: Thread-safe in-memory store (`sync.RWMutex`).
+* **`internal/model`**: Domain structures (`Todo`, `CreateTodoRequest`, `UpdateTodoRequest`).
+* **`Dockerfile`**: Single-stage container image based on `golang:1.26` building a static binary.
 
 ---
 

