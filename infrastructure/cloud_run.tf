@@ -23,7 +23,7 @@ resource "time_sleep" "wait_for_secret_iam" {
   depends_on = [
     google_project_service.run,
     google_secret_manager_secret_version.todo_secrets_v1,
-    google_project_iam_member.secret_broad
+    google_secret_manager_secret_iam_member.todo_secret_accessor
   ]
 
   create_duration = "30s"
@@ -61,12 +61,12 @@ resource "google_cloud_run_v2_service" "todo_service" {
 
       env {
         name  = "DEBUG"
-        value = "true"
+        value = "false"
       }
 
       env {
         name  = "ENVIRONMENT"
-        value = "staging"
+        value = "production"
       }
 
       env {
