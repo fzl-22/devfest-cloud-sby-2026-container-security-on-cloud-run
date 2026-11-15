@@ -18,6 +18,20 @@
 
 ---
 
+## Workshop Agenda & Pacing (90 Minutes)
+
+| Timeline | Phase | Workshop Section | Hands-on Objectives |
+|:---:|:---|:---|:---|
+| **00 – 05m** | **Presentation & Intro** | Slide Deck (PowerPoint) | Welcome, speaker intro, workshop goals, and high-level 3-layer security model overview. |
+| **05 – 15m** | **Software Installation & GCP Project Preparation** | [GETTING_STARTED.md](./GETTING_STARTED.md)<br>[Step 0: GCP Project Preparation](#step-0-gcp-project-preparation) | Verify/install prerequisite tools (`gcloud`, Docker, Terraform, Trivy), authenticate `gcloud`, link billing, configure ADC, and set active project. |
+| **15 – 30m** | **Deploy & Exploit** | [Step 1: Deploy to Cloud Run](#step-1-deploy-to-cloud-run)<br>[Step 2: Test the Live Service](#step-2-test-the-live-service) | Bootstrap Artifact Registry, build/push container, apply Terraform, and exploit leaked secrets via `/diagnostics`. |
+| **30 – 55m** | **AI Audit & Pair Hardening** | [Step 3: Security Review with Antigravity](#step-3-security-review-with-antigravity-agent) | Run `container-security-review` skill; interactively harden Application, Container (distroless + non-root), and Platform layers. |
+| **55 – 75m** | **Deterministic Verification** | [Step 4: Deterministic Verification](#step-4-beyond-ai-review--deterministic-measurement--verification) | Run `govulncheck` (AST reachability) and `trivy` (CVE scanning); apply fix-and-verify dependency remediation. |
+| **75 – 85m** | **Shift-Left Guardrails** | [Step 5: Shift-Left Security](#step-5-shift-left-security--organization-level-guardrails) | Inspect automated GitHub Actions PR gates, PR summary/artifact/SARIF reporting, tool spectrum, and GCP Org Policies. |
+| **85 – 90m** | **Wrap-up & Teardown** | [Step 6: Cleanup](#step-6-cleanup) | Clean up resources via `terraform destroy` or full GCP project deletion, followed by open Q&A. |
+
+---
+
 ## Repository Layout
 
 ```text
