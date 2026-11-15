@@ -18,6 +18,17 @@ locals {
   image = coalesce(var.image, "${var.region}-docker.pkg.dev/${var.project_id}/todo-repo/todo-service:stable")
 }
 
+# Wait for Secret Manager IAM permissions & version to replicate across GCP
+resource "time_sleep" "wait_for_secret_iam" {
+  depends_on = [
+    google_project_service.run,
+    google_secret_manager_secret_version.todo_secrets_v1,
+    google_project_iam_member.secret_broad
+  ]
+
+  create_duration = "30s"
+}
+
 resource "google_cloud_run_v2_service" "todo_service" {
   name                = var.service_name
   location            = var.region
@@ -82,9 +93,7 @@ resource "google_cloud_run_v2_service" "todo_service" {
   }
 
   depends_on = [
-    google_project_service.run,
-    google_secret_manager_secret_version.todo_secrets_v1,
-    google_project_iam_member.secret_broad
+    time_sleep.wait_for_secret_iam
   ]
 }
 
