@@ -443,8 +443,8 @@ If deterministic tools flag vulnerabilities, follow a structured remediation loo
 Automate security gates on every pull request using GitHub Actions. Insecure code or vulnerable containers are blocked before merging, and comprehensive audit reports are automatically published to the **GitHub Job Summary**, stored as **downloadable artifacts**, and integrated into the **GitHub Security (SARIF)** dashboard:
 
 ```yaml
-# .github/workflows/security-gates.yml
-name: Security Gates & Audit Reports
+# .github/workflows/ci.yml
+name: CI & Security Gates
 
 on:
   pull_request:
@@ -453,8 +453,30 @@ on:
     branches: [main, master]
 
 jobs:
-  security-scan:
-    name: Shift-Left Vulnerability Gates
+  # =============================================================================
+  # Job 1: Unit Tests & Code Correctness
+  # =============================================================================
+  unit-tests:
+    name: Unit Tests & Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'application/go.mod'
+
+      - name: Run Unit Tests with Race Detector
+        run: |
+          (cd application && go test -v -race ./...)
+
+  # =============================================================================
+  # Job 2: Shift-Left Vulnerability Gates & Security Reporting
+  # =============================================================================
+  security-gates:
+    name: Shift-Left Security Gates
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -467,18 +489,15 @@ jobs:
       - name: Create Reports Directory
         run: mkdir -p reports
 
-      # Gate 1: Application Vulnerability Gate (Call-graph reachability)
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: 'application/go.mod'
-
+      # Gate 2: Application Vulnerability Gate (Call-graph reachability)
       - name: Run govulncheck & Save Report
+        id: govulncheck
+        continue-on-error: true
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           (cd application && govulncheck ./...) | tee reports/APPLICATION_SCAN_REPORT.md
 
-      # Gate 2: Container Image Vulnerability Gate
+      # Gate 3: Container Image Vulnerability Gate
       - name: Build Candidate Container Image
         run: |
           docker build -t todo-service:candidate ./application
@@ -505,7 +524,7 @@ jobs:
       - name: Publish Audit Summary to GitHub Actions Job Summary
         if: always()
         run: |
-          echo "## 🛡️ Security Audit Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## Security Audit Summary" >> $GITHUB_STEP_SUMMARY
           echo "### 1. Application Vulnerabilities (govulncheck)" >> $GITHUB_STEP_SUMMARY
           echo '```text' >> $GITHUB_STEP_SUMMARY
           cat reports/APPLICATION_SCAN_REPORT.md >> $GITHUB_STEP_SUMMARY 2>/dev/null || true
@@ -529,14 +548,25 @@ jobs:
           sarif_file: 'reports/trivy-results.sarif'
           category: 'trivy-container'
 
-      # Gate Enforcement: Fails the PR check if unmitigated CRITICAL/HIGH CVEs exist
-      - name: Enforce Trivy Exit Code
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'todo-service:candidate'
-          exit-code: '1'
-          ignore-unfixed: true
-          severity: 'CRITICAL,HIGH'
+      # =========================================================================
+      # Gate Enforcement: Fails the build if either scanner detected vulnerabilities
+      # =========================================================================
+      - name: Enforce Security Gates (Block Merge on Findings)
+        run: |
+          FAILED=0
+          if [ "${{ steps.govulncheck.outcome }}" != "success" ]; then
+            echo "[FAILED] Gate 1: govulncheck detected vulnerable called symbols in Go code."
+            FAILED=1
+          fi
+          if grep -q "CRITICAL" reports/CONTAINER_SCAN_REPORT.md || grep -q "HIGH" reports/CONTAINER_SCAN_REPORT.md; then
+            echo "[FAILED] Gate 2: Trivy detected CRITICAL/HIGH vulnerabilities in container image."
+            FAILED=1
+          fi
+          if [ $FAILED -ne 0 ]; then
+            echo "[MERGE BLOCKED] Unmitigated security vulnerabilities found. Resolve them to pass CI."
+            exit 1
+          fi
+          echo "[PASSED] All security gates passed cleanly."
 ```
 
 ### 2. Ecosystem Tooling Spectrum (Industry Options)
