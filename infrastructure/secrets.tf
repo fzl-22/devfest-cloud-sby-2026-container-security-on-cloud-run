@@ -1,6 +1,7 @@
 # Secret Manager is used (Good practice), but all service secrets are bundled into
 # a single JSON blob mounted as an environment variable (Anti-pattern: excessive blast radius).
 resource "google_secret_manager_secret" "todo_secrets" {
+  project   = var.project_id
   secret_id = "todo-app-secrets"
 
   replication {

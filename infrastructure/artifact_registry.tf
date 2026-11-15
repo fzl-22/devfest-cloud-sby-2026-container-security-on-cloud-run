@@ -1,5 +1,6 @@
 # Artifact Registry for Todo container images
 resource "google_artifact_registry_repository" "todo_repo" {
+  project       = var.project_id
   location      = var.region
   repository_id = "todo-repo"
   description   = "Docker repository for Todo API"

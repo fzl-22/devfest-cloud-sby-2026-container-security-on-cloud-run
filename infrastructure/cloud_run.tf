@@ -17,6 +17,7 @@
 resource "google_cloud_run_v2_service" "todo_service" {
   name                = var.service_name
   location            = var.region
+  project             = var.project_id
   ingress             = "INGRESS_TRAFFIC_ALL"
   deletion_protection = false
 
@@ -85,6 +86,7 @@ resource "google_cloud_run_v2_service" "todo_service" {
 
 # Public ingress: Frontend web/mobile apps hit this directly without Google IAM
 resource "google_cloud_run_v2_service_iam_member" "public_ingress" {
+  project  = var.project_id
   name     = google_cloud_run_v2_service.todo_service.name
   location = google_cloud_run_v2_service.todo_service.location
   role     = "roles/run.invoker"

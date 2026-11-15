@@ -1,4 +1,5 @@
 resource "google_service_account" "todo_sa" {
+  project      = var.project_id
   account_id   = "todo-app-sa"
   display_name = "Todo Application Service Account"
 }
