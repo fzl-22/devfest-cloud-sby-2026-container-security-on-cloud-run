@@ -65,9 +65,10 @@ func LoadConfig() *AppConfig {
 		cfg.AdminAPIKey = os.Getenv("TODO_ADMIN_KEY")
 	}
 
+	// Security Hardening (A04/A07): Fail-closed design.
+	// Never embed fallback credentials in compiled code.
 	if cfg.AdminAPIKey == "" {
-		log.Println("[WARN] No ADMIN_API_KEY detected. Using local development fallback credential.")
-		cfg.AdminAPIKey = "dev-test-admin-secret-key-3b9e4a1"
+		log.Println("[WARN] No ADMIN_API_KEY detected. Administrative actions will remain disabled.")
 	}
 
 	return cfg

@@ -3,10 +3,9 @@ package handler
 import (
 	"crypto/subtle"
 	"fmt"
-	"os"
+	"log"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gofiber/fiber/v3"
 
@@ -60,13 +59,8 @@ func (h *Handler) HandleGetByID(c fiber.Ctx) error {
 func (h *Handler) HandleCreate(c fiber.Ctx) error {
 	var req model.CreateTodoRequest
 	if err := c.Bind().Body(&req); err != nil {
-		if h.config.DebugMode {
-			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-				"error":        "payload validation failed",
-				"debug_detail": err.Error(),
-				"received_raw": string(c.Body()),
-			})
-		}
+		// Log detailed error internally for Cloud Logging, never leak reflection to caller
+		log.Printf("[WARN] JSON request binding failed: %v", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "invalid JSON request body",
 		})
@@ -92,8 +86,8 @@ func (h *Handler) HandleDelete(c fiber.Ctx) error {
 		})
 	}
 
-	// Constant time comparison to prevent timing attacks
-	if subtle.ConstantTimeCompare([]byte(authHeader), []byte(h.config.AdminAPIKey)) != 1 {
+	// Security Hardening: Constant time comparison; fail closed if key unconfigured
+	if h.config.AdminAPIKey == "" || subtle.ConstantTimeCompare([]byte(authHeader), []byte(h.config.AdminAPIKey)) != 1 {
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 			"error": "insufficient privileges: invalid administrative key",
 		})
@@ -118,33 +112,6 @@ func (h *Handler) HandleDelete(c fiber.Ctx) error {
 	})
 }
 
-// GET /api/v1/system/diagnostics
-func (h *Handler) HandleDiagnostics(c fiber.Ctx) error {
-	if !h.config.DebugMode {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "endpoint not found",
-		})
-	}
-
-	envVars := make(map[string]string)
-	for _, env := range os.Environ() {
-		pair := strings.SplitN(env, "=", 2)
-		if len(pair) == 2 {
-			envVars[pair[0]] = pair[1]
-		}
-	}
-
-	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"system": fiber.Map{
-			"environment":   h.config.Environment,
-			"debug_enabled": h.config.DebugMode,
-			"pid":           os.Getpid(),
-			"timestamp":     time.Now().UTC().Format(time.RFC3339),
-		},
-		"environment_variables": envVars,
-	})
-}
-
 // RegisterRoutes registers the application's HTTP routes onto the Fiber app.
 func (h *Handler) RegisterRoutes(app *fiber.App) {
 	// Public API group
@@ -154,8 +121,5 @@ func (h *Handler) RegisterRoutes(app *fiber.App) {
 		v1.Get("/todos/:id", h.HandleGetByID)
 		v1.Post("/todos", h.HandleCreate)
 		v1.Delete("/todos/:id", h.HandleDelete)
-
-		// Exposed diagnostic endpoint (active when DEBUG=true)
-		v1.Get("/system/diagnostics", h.HandleDiagnostics)
 	}
 }
