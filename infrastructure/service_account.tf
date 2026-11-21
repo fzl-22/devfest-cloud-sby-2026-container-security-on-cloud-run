@@ -47,7 +47,10 @@ resource "google_project_iam_member" "compute_cloudbuild_storage" {
   role    = "roles/storage.objectViewer"
   member  = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
 
-  depends_on = [google_project_service.cloudbuild]
+  depends_on = [
+    google_project_service.cloudbuild,
+    google_project_service.compute,
+  ]
 }
 
 resource "google_project_iam_member" "compute_cloudbuild_writer" {
@@ -55,7 +58,10 @@ resource "google_project_iam_member" "compute_cloudbuild_writer" {
   role    = "roles/artifactregistry.writer"
   member  = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
 
-  depends_on = [google_project_service.cloudbuild]
+  depends_on = [
+    google_project_service.cloudbuild,
+    google_project_service.compute,
+  ]
 }
 
 resource "google_project_iam_member" "compute_cloudbuild_logs" {
@@ -63,5 +69,8 @@ resource "google_project_iam_member" "compute_cloudbuild_logs" {
   role    = "roles/logging.logWriter"
   member  = "serviceAccount:${data.google_project.current.number}-compute@developer.gserviceaccount.com"
 
-  depends_on = [google_project_service.cloudbuild]
+  depends_on = [
+    google_project_service.cloudbuild,
+    google_project_service.compute,
+  ]
 }
