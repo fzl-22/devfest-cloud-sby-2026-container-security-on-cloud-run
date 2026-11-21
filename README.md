@@ -183,6 +183,7 @@ terraform init
 terraform apply \
   -target=google_project_service.artifactregistry \
   -target=google_project_service.cloudbuild \
+  -target=google_project_service.compute \
   -target=google_artifact_registry_repository.todo_repo \
   -target=google_project_iam_member.compute_cloudbuild_storage \
   -target=google_project_iam_member.compute_cloudbuild_writer \
