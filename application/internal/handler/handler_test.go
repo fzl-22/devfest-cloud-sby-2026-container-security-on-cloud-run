@@ -2,8 +2,6 @@ package handler
 
 import (
 	"bytes"
-	"encoding/json"
-	"io"
 	"net/http/httptest"
 	"testing"
 
@@ -69,7 +67,7 @@ func TestHandleDelete_Auth(t *testing.T) {
 	}
 }
 
-func TestHandleDiagnostics_DebugMode(t *testing.T) {
+func TestHandleDiagnostics_Disabled(t *testing.T) {
 	app, _ := setupTestApp()
 
 	req := httptest.NewRequest("GET", "/api/v1/system/diagnostics", nil)
@@ -78,18 +76,9 @@ func TestHandleDiagnostics_DebugMode(t *testing.T) {
 		t.Fatalf("request failed: %v", err)
 	}
 
-	if resp.StatusCode != 200 {
-		t.Errorf("expected 200 OK, got %d", resp.StatusCode)
-	}
-
-	body, _ := io.ReadAll(resp.Body)
-	var result map[string]interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		t.Fatalf("failed to parse json response: %v", err)
-	}
-
-	if _, ok := result["environment_variables"]; !ok {
-		t.Errorf("expected environment_variables in diagnostic response")
+	// Security Hardening: Diagnostic endpoint must return 404 (disabled)
+	if resp.StatusCode != 404 {
+		t.Errorf("expected 404 Not Found for disabled diagnostics endpoint, got %d", resp.StatusCode)
 	}
 }
 

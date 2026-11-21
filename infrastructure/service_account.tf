@@ -4,29 +4,24 @@ resource "google_service_account" "todo_sa" {
   display_name = "Todo Application Service Account"
 }
 
-# The Realistic Anti-Pattern:
-# To avoid permission issues during staging/MVP development, the team assigned
-# broad roles instead of fine-grained permissions.
+# ==============================================================================
+# Hardened Least-Privilege IAM Configuration
+# ==============================================================================
 
-# 1. Broad Storage Admin instead of specific bucket read/write
-resource "google_project_iam_member" "storage_broad" {
-  project = var.project_id
-  role    = "roles/storage.admin"
-  member  = "serviceAccount:${google_service_account.todo_sa.email}"
-}
-
-# 2. Broad Datastore/Firestore User for todo persistence
+# 1. Datastore/Firestore User for todo persistence
 resource "google_project_iam_member" "datastore_user" {
   project = var.project_id
   role    = "roles/datastore.user"
   member  = "serviceAccount:${google_service_account.todo_sa.email}"
 }
 
-# 3. Secret Manager Admin (or Secret Accessor at PROJECT level instead of single secret)
-resource "google_project_iam_member" "secret_broad" {
-  project = var.project_id
-  role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${google_service_account.todo_sa.email}"
+# 2. Scoped Secret Accessor: Strictly bound to the specific secret resource,
+# eliminating project-wide secret inspection blast radius (V-PLT-03).
+resource "google_secret_manager_secret_iam_member" "todo_secret_accessor" {
+  project   = var.project_id
+  secret_id = google_secret_manager_secret.todo_secrets.secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.todo_sa.email}"
 }
 
 # ==============================================================================

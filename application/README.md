@@ -6,8 +6,8 @@ This directory contains the application source code and container definition for
 
 ## Technical Stack
 
-* **Language:** Go 1.26
-* **Web Framework:** [Go Fiber v3](https://github.com/gofiber/fiber) (v3.3.0)
+* **Language:** Go 1.27.4
+* **Web Framework:** [Go Fiber v3](https://github.com/gofiber/fiber) (v3.7.0)
 * **Default Port:** `8080` (configurable via `PORT` environment variable)
 
 ---
@@ -39,7 +39,7 @@ application/
   * `GET /api/v1/system/diagnostics`: System diagnostics endpoint (Active when `DEBUG=true`).
 * **`internal/store`**: Thread-safe in-memory store (`sync.RWMutex`).
 * **`internal/model`**: Domain structures (`Todo`, `CreateTodoRequest`, `UpdateTodoRequest`).
-* **`Dockerfile`**: Single-stage container image based on `golang:1.26` building a static binary.
+* **`Dockerfile`**: Single-stage container image based on `golang:1.27.4` building a static binary.
 
 ---
 
